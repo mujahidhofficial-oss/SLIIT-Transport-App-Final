@@ -1,4 +1,5 @@
 const express = require("express");
+// Routes for handling booking-related operations such as creating booking requests, responding to bookings, and fetching booking history. These routes interact with the bookingController to perform the necessary business logic and database operations.
 const router = express.Router();
 const {
   createBookingRequest,
