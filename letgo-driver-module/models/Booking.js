@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+// Booking schema to represent a booking made by a customer for a trip. It includes references to the trip, customer, seat numbers, total amount, and status of the booking.
 const bookingSchema = new mongoose.Schema(
   {
     tripId: {
