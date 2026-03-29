@@ -4,12 +4,12 @@ const mongoose = require("mongoose");
 const { computeDynamicPricePerSeat } = require("../utils/dynamicPricing");
 const memoryStore = require("../utils/memoryStore");
 const { createAndEmitNotification } = require("../utils/notify");
-
+// Helper to emit socket events if io is available in app context.
 function emitIfIo(req, event, payload) {
   const io = req.app.get("io");
   if (io) io.emit(event, payload);
 }
-
+// Helper to check if DB is connected, used to decide between in-memory store and MongoDB.
 function isDbConnected() {
   return mongoose.connection.readyState === 1;
 }
