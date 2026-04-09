@@ -1,0 +1,26 @@
+{
+  "name": "letgo-driver-module",
+  "version": "1.0.0",
+  "description": "Driver Module - Trip Management",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed:passenger": "node scripts/seed-passenger.js",
+    "db:list-accounts": "node scripts/list-accounts.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.1",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.7.5",
+    "tesseract.js": "^5.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
