@@ -23,7 +23,7 @@ import { router } from "expo-router";
 import { getAuthSession } from "@/app/_state/authSession";
 import type { Booking as BookingRecord } from "@/app/_state/bookingStore";
 import { Trip, loadBookingsHistory, loadTrips, useBookingStore } from "@/app/_state/bookingStore";
-
+// Note: this file focuses on the client-side booking flow and UI. The main booking logic and API integration is in `letgo-driver-module/controllers/bookingController.js` (called by `createBookingRequest`), which also has server-side validation.
 /** Parses typed dates/times without forcing ISO (PickMe-style free text). */
 function parseFlexibleDateTime(raw: string): number | null {
   const s = raw.trim();
