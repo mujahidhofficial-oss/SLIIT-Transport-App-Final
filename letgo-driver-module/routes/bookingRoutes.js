@@ -9,7 +9,7 @@ const {
   getBookingHistory,
   getDriverAnalytics
 } = require("../controllers/bookingController");
-
+// Route to create a new booking request
 router.post("/", createBookingRequest);
 router.get("/trip/:tripId", getBookingsForTrip);
 router.get("/history", getBookingHistory);
