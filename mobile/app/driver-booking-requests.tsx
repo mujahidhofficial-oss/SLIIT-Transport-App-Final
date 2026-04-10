@@ -1,3 +1,4 @@
+// This screen is for drivers to view and manage booking requests for a specific trip. It's not linked from the main app flow, but can be used for testing and demonstration purposes. Drivers can paste a trip ID, load pending booking requests, and accept or decline them.
 import React, { useState } from "react";
 import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
