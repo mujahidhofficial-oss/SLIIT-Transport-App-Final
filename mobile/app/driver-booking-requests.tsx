@@ -52,7 +52,7 @@ export default function DriverBookingRequests() {
       setLoading(false);
     }
   };
-
+// Note: the main booking logic and API integration is in `letgo-driver-module/controllers/bookingController.js` (called by this endpoint), which also has server-side validation.
   const respond = async (bookingId: string, action: "accepted" | "declined") => {
     try {
       const res = await fetch(`${getApiBaseUrl()}/api/bookings/${bookingId}/respond`, {
