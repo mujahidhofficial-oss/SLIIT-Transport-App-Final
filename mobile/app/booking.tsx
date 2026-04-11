@@ -65,7 +65,7 @@ function validateRideSearch(input: {
   if (p.length >= 2 && d.length >= 2 && p.toLowerCase() === d.toLowerCase()) {
     errs.push("Pickup and destination must be two different places.");
   }
-
+// Note: we allow more flexible price input (e.g. "500", "500.00", "500,000") but validate it to prevent confusion.
   const mp = input.maxPrice.trim();
   if (mp) {
     const n = Number(mp.replace(/,/g, ""));
