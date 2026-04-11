@@ -26,7 +26,7 @@ export type Trip = {
   /** Route distance when available (km); used for sorting “nearby” rides. */
   distanceKm: number;
 };
-
+// Note: the main booking logic and API integration is in `letgo-driver-module/controllers/bookingController.js` (called by `createBookingRequest`), which also has server-side validation.
 export type BookingStatus = "upcoming" | "completed" | "cancelled";
 
 export type Booking = {
