@@ -37,7 +37,7 @@ const createBookingRequest = async (req, res) => {
       if (trip.availableSeats < Number(parsedSeatsRequested)) {
         return res.status(400).json({ message: "Not enough available seats for request" });
       }
-
+// Check for existing open booking for the same customer and trip.
       const existingOpenBooking = memoryStore
         .getBookingsForTrip(tripId)
         .find((b) => String(b.customerId) === String(customerId) && ["pending", "accepted"].includes(b.status));
