@@ -1,3 +1,4 @@
+// routes/paymentRoutes.js - Defines API endpoints for handling payments (card and cash) and payment history. Also includes demo routes for testing payment flows without actual processing.
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/upload");
@@ -29,4 +30,3 @@ router.put("/refund/:paymentId", refundPayment);
 router.get("/history", getPaymentHistory);
 
 module.exports = router;
-
