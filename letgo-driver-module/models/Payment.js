@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+// models/Payment.js - Payment schema for ride transactions. Linked to Booking, used for both card and cash payments.
 const paymentSchema = new mongoose.Schema(
   {
     bookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking", required: false },
