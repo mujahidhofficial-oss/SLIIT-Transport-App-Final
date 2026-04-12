@@ -1,3 +1,4 @@
+// controllers/paymentDemoController.js - For testing/demo purposes only. Not used in production.
 const mongoose = require("mongoose");
 const Payment = require("../models/Payment");
 const Refund = require("../models/Refund");
