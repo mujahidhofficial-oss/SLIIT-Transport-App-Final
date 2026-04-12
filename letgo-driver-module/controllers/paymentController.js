@@ -1,3 +1,5 @@
+// controllers/paymentController.js 
+
 const path = require("path");
 const Payment = require("../models/Payment");
 const Booking = require("../models/Booking");
