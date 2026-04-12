@@ -674,7 +674,7 @@ const uploadDriverLicense = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
+//upload driver vehicle photo
 module.exports = {
   registerDriver,
   verifyDriverLicense,
