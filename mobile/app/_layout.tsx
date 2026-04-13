@@ -27,7 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="welcome" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
-        {/* Booking + trip flow */}
+        {/* Booking + trip flow in hear */}
         <Stack.Screen name="booking" />
         <Stack.Screen name="seat-selection" />
         <Stack.Screen name="order-processing" />
