@@ -36,5 +36,5 @@ const bookingSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
+// Export the Booking model based on the bookingSchema.
 module.exports = mongoose.model("Booking", bookingSchema);
