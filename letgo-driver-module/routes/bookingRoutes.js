@@ -13,6 +13,7 @@ const {
 router.post("/", createBookingRequest);
 router.get("/trip/:tripId", getBookingsForTrip);
 router.get("/history", getBookingHistory);
+// Route to get analytics for a specific driver, such as total bookings, earnings, and ratings.
 router.get("/driver/:driverId/analytics", getDriverAnalytics);
 router.put("/:bookingId/respond", respondToBooking);
 router.put("/:bookingId/cancel", cancelBooking);
