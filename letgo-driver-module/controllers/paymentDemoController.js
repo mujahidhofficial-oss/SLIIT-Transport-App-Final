@@ -46,7 +46,7 @@ async function createDemoPayment(req, res) {
     const a = parseMoney(amount);
     const f = parseMoney(adminFee);
     const t = total !== undefined && total !== null ? parseMoney(total) : a + f;
-
+// Basic validation (can be expanded as needed)
     if (!tripDescription || !basicClassification || !subcategory) {
       return res.status(400).json({ message: "Missing bill details" });
     }
