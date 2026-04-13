@@ -9,7 +9,7 @@ const Refund = require("../models/Refund");
 function simulateCardIntent() {
   return `pi_demo_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 }
-
+// Base function to create a payment record. Used by both card and cash payment flows.
 async function createPaymentBase({ bookingId, customerId, driverId, amount, paymentMethod, status }) {
   const payment = await Payment.create({
     bookingId,
