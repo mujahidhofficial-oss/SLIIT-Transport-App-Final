@@ -62,7 +62,7 @@ async function getDriverPaymentEarnings(req, res) {
       prev.items.push(item);
       byDay.set(day, prev);
     }
-
+//get driver earnings
     for (const t of tripRows) {
       const rid = String(t.rideRequestId || "").trim();
       if (rid && paidRideIds.has(rid)) continue;
