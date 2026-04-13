@@ -10,7 +10,7 @@ const {
   refundPayment,
   getPaymentHistory,
 } = require("../controllers/paymentController");
-
+// Demo routes (no real payment processing, just simulating flows for UI testing)
 router.post("/card", createCardPayment);
 router.post("/cash/:paymentId/slip", upload.single("slip"), uploadCashSlip);
 router.put("/cash/:paymentId/confirm", confirmCashPayment);
