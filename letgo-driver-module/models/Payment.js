@@ -21,7 +21,7 @@ const paymentSchema = new mongoose.Schema(
 
     paymentMethod: { type: String, enum: ["card", "cash"], required: true },
     method: { type: String, enum: ["card", "cash"], default: undefined },
-
+// Status flow:
     status: {
       type: String,
       enum: ["pending", "pending_verification", "completed", "refunded", "failed"],
