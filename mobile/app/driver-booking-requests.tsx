@@ -9,7 +9,7 @@ import { getApiBaseUrl } from "@/app/_state/api";
 import { ScreenHeader } from "@/app/_components/ui/ScreenHeader";
 import { AppCard } from "@/app/_components/ui/AppCard";
 import { FormTextInput } from "@/app/_components/ui/FormTextInput";
-
+// Note: the main booking logic and API integration is in `letgo-driver-module/controllers/bookingController.js` (called by these endpoints), which also has server-side validation.
 type BookingItem = {
   _id: string;
   customerId: string;
