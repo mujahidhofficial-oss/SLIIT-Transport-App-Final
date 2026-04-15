@@ -50,9 +50,11 @@ async function createDemoPayment(req, res) {
     if (!tripDescription || !basicClassification || !subcategory) {
       return res.status(400).json({ message: "Missing bill details" });
     }
+// Payment method and customerId are essential for processing the payment, even in demo mode.
     if (!safePaymentMethod) {
       return res.status(400).json({ message: "paymentMethod is required" });
     }
+    
     if (!customerId) {
       return res.status(400).json({ message: "customerId is required" });
     }
