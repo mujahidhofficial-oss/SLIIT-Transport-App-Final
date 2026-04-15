@@ -11,7 +11,7 @@ const driverTripEarningSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
+//index for driverId and rideRequestId
 driverTripEarningSchema.index({ driverId: 1, rideRequestId: 1 }, { unique: true });
 
 module.exports = mongoose.model("DriverTripEarning", driverTripEarningSchema);
