@@ -3,6 +3,7 @@ const router = express.Router();
 const upload = require("../middleware/upload");
 const uploadLicenseImage = require("../middleware/uploadLicenseImage");
 const { requireAuth } = require("../middleware/auth");
+//driver routes
 const {
   registerDriver,
   verifyDriverLicense,
