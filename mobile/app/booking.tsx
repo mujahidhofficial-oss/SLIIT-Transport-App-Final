@@ -92,6 +92,7 @@ function validateRideSearch(input: {
       );
     }
   }
+  // If both times are valid, check that earliest is before latest.
   if (e && l) {
     const a = parseFlexibleDateTime(e);
     const b = parseFlexibleDateTime(l);
