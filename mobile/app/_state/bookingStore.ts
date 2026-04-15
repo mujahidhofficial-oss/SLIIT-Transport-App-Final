@@ -54,7 +54,7 @@ async function jsonHeadersWithAuth(): Promise<Record<string, string>> {
   if (session?.token) h.Authorization = `Bearer ${session.token}`;
   return h;
 }
-
+// Require customer ID for booking actions, throwing an error if not signed in. This is used in `createBooking` and `cancelBooking` to ensure the user is authenticated before making API calls.
 async function requireCustomerId(): Promise<string> {
   const session = await getAuthSession();
   const id = session?.user?.id;
