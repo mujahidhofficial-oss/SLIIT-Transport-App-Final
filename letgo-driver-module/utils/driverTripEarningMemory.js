@@ -17,7 +17,7 @@ function recordTripEarningMemory({ driverId, rideRequestId, fareLkr, routeLabel 
   if (idx >= 0) rows[idx] = row;
   else rows.push(row);
 }
-
+//list trip earnings memory
 function listTripEarningsMemory(driverId) {
   const did = String(driverId || "").trim();
   return rows.filter((r) => r.driverId === did);
