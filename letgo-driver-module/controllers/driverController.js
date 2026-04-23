@@ -107,9 +107,10 @@ const registerDriver = async (req, res) => {
       licenseCategory,
       licenseExpiry,
       vehicleNumber,
+      vehicleType,
     } = req.body || {};
 
-    if (!email || !password || !fullName || !phone || !licenseNumber || !vehicleNumber) {
+    if (!email || !password || !fullName || !phone || !licenseNumber || !vehicleNumber || !vehicleType) {
       cleanupMulterOnly();
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -231,7 +232,7 @@ const registerDriver = async (req, res) => {
           vehicleBookDocumentUrl: vehicleBookRelativeUrl,
           vehiclePhotoUrl: vehiclePhotoRelativeUrl,
           vehicleNumber: String(vehicleNumber).trim(),
-          vehicleType: "",
+          vehicleType: String(vehicleType).trim(),
           currentVehicle: String(vehicleNumber).trim(),
           showLocation: false,
           availability: true,
@@ -245,6 +246,7 @@ const registerDriver = async (req, res) => {
           licenseCategory,
           licenseExpiry,
           vehicleNumber,
+          vehicleType,
           licenseDocumentUrl: relativeUrl,
           vehicleBookDocumentUrl: vehicleBookRelativeUrl,
           vehiclePhotoUrl: vehiclePhotoRelativeUrl,

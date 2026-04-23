@@ -542,6 +542,7 @@ function SignupForm({ showPw, onTogglePw }: { showPw: boolean; onTogglePw: () =>
 }
 
 type PickedLicense = { uri: string; name: string; mimeType?: string };
+const DRIVER_VEHICLE_TYPES = ["Car", "Minivan", "Tuk Tuk", "Bicycle"] as const;
 
 function validateDriverSignup(input: {
   email: string;
@@ -552,6 +553,7 @@ function validateDriverSignup(input: {
   licenseCategory: string;
   licenseExpiry: string;
   vehicleNumber: string;
+  vehicleType: string;
   licenseFile: PickedLicense | null;
   vehicleBookFile: PickedLicense | null;
   vehiclePhotoFile: PickedLicense | null;
@@ -569,6 +571,7 @@ function validateDriverSignup(input: {
   if (!input.licenseExpiry.trim()) errs.push("License expiry is required (YYYY-MM-DD)");
   else if (!/^\d{4}-\d{2}-\d{2}$/.test(input.licenseExpiry.trim())) errs.push("Expiry must be in YYYY-MM-DD format");
   if (!input.vehicleNumber.trim()) errs.push("Vehicle registration is required");
+  if (!input.vehicleType.trim()) errs.push("Select your vehicle type");
   if (!input.vehicleBookFile) errs.push("Add a clear JPG or PNG photo of your vehicle book (library or camera)");
   if (!input.vehiclePhotoFile) errs.push("Add a clear JPG or PNG photo of your vehicle (library or camera)");
   if (!input.licenseFile) errs.push("Add a clear JPG or PNG photo of your license (library or camera)");
@@ -585,6 +588,7 @@ function DriverForm({ showPw, onTogglePw }: { showPw: boolean; onTogglePw: () =>
   const [licenseExpiry, setLicenseExpiry] = useState("");
   const [licenseFile, setLicenseFile] = useState<PickedLicense | null>(null);
   const [vehicleNumber, setVehicleNumber] = useState("");
+  const [vehicleType, setVehicleType] = useState("");
   const [vehicleBookFile, setVehicleBookFile] = useState<PickedLicense | null>(null);
   const [vehiclePhotoFile, setVehiclePhotoFile] = useState<PickedLicense | null>(null);
   const [loading, setLoading] = useState(false);
@@ -949,6 +953,7 @@ function DriverForm({ showPw, onTogglePw }: { showPw: boolean; onTogglePw: () =>
       licenseCategory,
       licenseExpiry,
       vehicleNumber,
+      vehicleType,
       licenseFile,
       vehicleBookFile,
       vehiclePhotoFile,
@@ -979,6 +984,7 @@ function DriverForm({ showPw, onTogglePw }: { showPw: boolean; onTogglePw: () =>
       form.append("licenseCategory", licenseCategory.trim());
       form.append("licenseExpiry", licenseExpiry.trim());
       form.append("vehicleNumber", vehicleNumber.trim());
+      form.append("vehicleType", vehicleType.trim());
       if (verifyToken) {
         form.append("verifyToken", verifyToken);
       } else {
@@ -1058,7 +1064,7 @@ function DriverForm({ showPw, onTogglePw }: { showPw: boolean; onTogglePw: () =>
   const vehicleVerificationReady = Boolean(
     vehicleNumber.trim() && vehiclePhotoFile && verifyVehicleToken
   );
-  const licenseVerified = Boolean(verifyToken);
+  const licenseVerified = Boolean(verifyToken) || Boolean(verifyBanner && /ocr.+(off|disabled|not compared)/i.test(verifyBanner));
   const vehicleNumberEntered = Boolean(vehicleNumber.trim());
   const vehicleBookVerified = Boolean(verifyVehicleToken);
   const vehiclePhotoAdded = Boolean(vehiclePhotoFile);
@@ -1236,6 +1242,25 @@ function DriverForm({ showPw, onTogglePw }: { showPw: boolean; onTogglePw: () =>
           autoCapitalize="characters"
         />
       </InputRow>
+
+      <View style={styles.vehicleTypeWrap}>
+        <Text style={styles.vehicleTypeLabel}>Vehicle type</Text>
+        <View style={styles.vehicleTypeRow}>
+          {DRIVER_VEHICLE_TYPES.map((type) => {
+            const active = vehicleType === type;
+            return (
+              <Pressable
+                key={type}
+                onPress={() => setVehicleType(type)}
+                style={[styles.vehicleTypeChip, active && styles.vehicleTypeChipActive]}
+                android_ripple={{ color: "#00000012" }}
+              >
+                <Text style={[styles.vehicleTypeChipText, active && styles.vehicleTypeChipTextActive]}>{type}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
       <View style={styles.licenseUploadCard}>
         <View style={styles.licenseUploadHeader}>
@@ -1654,6 +1679,40 @@ const styles = StyleSheet.create({
   },
   verifyPending: {
     color: BrandColors.textMuted,
+  },
+  vehicleTypeWrap: {
+    marginTop: Space.sm,
+    marginBottom: Space.sm,
+  },
+  vehicleTypeLabel: {
+    ...Typography.overline,
+    color: BrandColors.primaryDark,
+    marginBottom: Space.xs,
+  },
+  vehicleTypeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Space.xs,
+  },
+  vehicleTypeChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    borderColor: BrandColors.border,
+    backgroundColor: BrandColors.surfaceMuted,
+  },
+  vehicleTypeChipActive: {
+    borderColor: BrandColors.primary,
+    backgroundColor: BrandColors.accentSoft,
+  },
+  vehicleTypeChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: BrandColors.textDark,
+  },
+  vehicleTypeChipTextActive: {
+    color: BrandColors.primaryDark,
   },
   licenseDrop: {
     borderWidth: 1,
