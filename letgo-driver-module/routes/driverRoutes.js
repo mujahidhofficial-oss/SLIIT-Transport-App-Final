@@ -6,6 +6,7 @@ const { requireAuth } = require("../middleware/auth");
 const {
   registerDriver,
   verifyDriverLicense,
+  verifyDriverVehicleBook,
   loginDriver,
   getDriverMe,
   updateDriverMe,
@@ -24,17 +25,30 @@ function withLicenseUpload(req, res, next) {
   });
 }
 
+function withVehicleBookUpload(req, res, next) {
+  uploadLicenseImage.single("vehicleBookImage")(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ message: err.message || "Invalid vehicle book photo upload" });
+    }
+    next();
+  });
+}
+
 /** register may omit licenseImage if a valid verifyToken is sent (OCR already done). */
 function withOptionalLicenseImage(req, res, next) {
-  uploadLicenseImage.single("licenseImage")(req, res, (err) => {
+  uploadLicenseImage.fields([
+    { name: "licenseImage", maxCount: 1 },
+    { name: "vehicleImage", maxCount: 1 },
+  ])(req, res, (err) => {
     if (err) {
-      return res.status(400).json({ message: err.message || "Invalid license photo upload" });
+      return res.status(400).json({ message: err.message || "Invalid photo upload" });
     }
     next();
   });
 }
 
 router.post("/verify-license", withLicenseUpload, verifyDriverLicense);
+router.post("/verify-vehicle-book", withVehicleBookUpload, verifyDriverVehicleBook);
 router.post("/register", withOptionalLicenseImage, registerDriver);
 router.post("/login", loginDriver);
 router.get("/me", requireAuth, getDriverMe);

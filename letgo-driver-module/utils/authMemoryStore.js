@@ -58,6 +58,8 @@ async function createDriver({
   licenseExpiry,
   vehicleNumber,
   licenseDocumentUrl = "",
+  vehicleBookDocumentUrl = "",
+  vehiclePhotoUrl = "",
 }) {
   const normalizedEmail = String(email).toLowerCase().trim();
   if (memory.driversByEmail.has(normalizedEmail)) {
@@ -77,6 +79,8 @@ async function createDriver({
     licenseCategory: String(licenseCategory ?? "").trim(),
     licenseExpiry: String(licenseExpiry ?? "").trim(),
     licenseDocumentUrl: String(licenseDocumentUrl || "").trim(),
+    vehicleBookDocumentUrl: String(vehicleBookDocumentUrl || "").trim(),
+    vehiclePhotoUrl: String(vehiclePhotoUrl || "").trim(),
     vehicleNumber: String(vehicleNumber).trim(),
     vehicleType: "",
     currentVehicle: String(vehicleNumber).trim(),
