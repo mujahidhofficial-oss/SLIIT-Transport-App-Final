@@ -21,11 +21,7 @@ import { ScreenShell } from "@/app/_components/ui/ScreenShell";
 import { ScreenHeader } from "@/app/_components/ui/ScreenHeader";
 import { AppCard } from "@/app/_components/ui/AppCard";
 import { FormTextInput } from "@/app/_components/ui/FormTextInput";
-
-const Maps = Platform.OS === "web" ? null : require("react-native-maps");
-const MapView = Maps?.default;
-const Marker = Maps?.Marker;
-const Polyline = Maps?.Polyline;
+import { MapView, Marker, Polyline } from "./_components/maps/MapPrimitives";
 
 type LatLng = { lat: number; lng: number };
 

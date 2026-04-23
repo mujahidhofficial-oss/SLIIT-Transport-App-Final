@@ -12,11 +12,7 @@ import { Elevated, Layout, Radii, Space, Typography } from "@/app/_theme/tokens"
 import { getApiBaseUrl } from "@/app/_state/api";
 import { getAuthSession } from "@/app/_state/authSession";
 import { getDriverSession } from "@/app/_state/driverSession";
-
-const Maps = Platform.OS === "web" ? null : require("react-native-maps");
-const MapView = Maps?.default;
-const Marker = Maps?.Marker;
-const Polyline = Maps?.Polyline;
+import { MapView, Marker, Polyline } from "./_components/maps/MapPrimitives";
 
 const PLACEHOLDER = BrandColors.textLight;
 const DECLINE_BG = "#E85D5D";
