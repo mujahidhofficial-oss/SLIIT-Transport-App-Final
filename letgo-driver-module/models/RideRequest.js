@@ -25,6 +25,7 @@ const rideRequestSchema = new mongoose.Schema(
     driverPhone: { type: String, default: "", trim: true },
     vehicleNumber: { type: String, default: "", trim: true },
     vehicleType: { type: String, default: "", trim: true },
+    driverShowLocation: { type: Boolean, default: false },
     /** Latest driver price offer while status is pending (shown to passenger). */
     driverBidLkr: { type: Number, default: 0 },
     driverBidDriverId: { type: String, default: "", trim: true },

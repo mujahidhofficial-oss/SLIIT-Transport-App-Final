@@ -14,7 +14,14 @@ export type RideRequest = {
   distanceKm: number;
   estimatedFareLkr: number;
   status: RideRequestStatus;
-  driver?: { id: string; name?: string; phone?: string; vehicleNumber?: string; vehicleType?: string };
+  driver?: {
+    id: string;
+    name?: string;
+    phone?: string;
+    vehicleNumber?: string;
+    vehicleType?: string;
+    showLocation?: boolean;
+  };
   createdAt?: string;
   /** Driver’s offered fare (LKR) while request is pending — shown to passenger. */
   driverBidLkr?: number;
@@ -71,6 +78,7 @@ function startSocketOnce() {
                 phone: driver.phone ? String(driver.phone) : undefined,
                 vehicleNumber: driver.vehicleNumber ? String(driver.vehicleNumber) : undefined,
                 vehicleType: driver.vehicleType ? String(driver.vehicleType) : undefined,
+                showLocation: typeof driver.showLocation === "boolean" ? !!driver.showLocation : undefined,
               }
             : state.activeRequest!.driver,
         },
@@ -208,6 +216,7 @@ export async function createRideRequest(input: {
           phone: r.driverPhone ? String(r.driverPhone) : undefined,
           vehicleNumber: r.vehicleNumber ? String(r.vehicleNumber) : undefined,
           vehicleType: r.vehicleType ? String(r.vehicleType) : undefined,
+          showLocation: typeof r.driverShowLocation === "boolean" ? !!r.driverShowLocation : undefined,
         }
       : undefined,
     createdAt: r.createdAt ? String(r.createdAt) : undefined,

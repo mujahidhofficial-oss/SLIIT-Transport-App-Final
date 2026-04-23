@@ -81,6 +81,7 @@ async function createRideRequest(req, res) {
         driverPhone: "",
         vehicleNumber: "",
         vehicleType: "",
+        driverShowLocation: false,
         driverBidLkr: 0,
         driverBidDriverId: "",
         driverBidDriverName: "",
@@ -117,6 +118,7 @@ async function createRideRequest(req, res) {
         driverPhone: doc.driverPhone,
         vehicleNumber: doc.vehicleNumber,
         vehicleType: doc.vehicleType,
+        driverShowLocation: !!doc.driverShowLocation,
         createdAt: doc.createdAt,
         driverBidLkr: Number(doc.driverBidLkr) || 0,
         driverBidDriverName: doc.driverBidDriverName || "",
@@ -266,6 +268,9 @@ async function getRideRequestById(req, res) {
       estimatedFareLkr: doc.estimatedFareLkr,
       pickup: doc.pickup,
       dropoff: doc.dropoff,
+      vehicleNumber: doc.vehicleNumber || "",
+      vehicleType: doc.vehicleType || "",
+      driverShowLocation: !!doc.driverShowLocation,
       driverBidLkr: Number(doc.driverBidLkr) || 0,
       driverBidDriverName: doc.driverBidDriverName || "",
       driverBidDriverId: doc.driverBidDriverId ? String(doc.driverBidDriverId) : "",
@@ -543,6 +548,18 @@ async function listDriverRideRequests(req, res) {
 
 async function listPendingRideRequests(req, res) {
   try {
+    const driverId = String(req.query.driverId || "").trim();
+    if (driverId) {
+      let driver = null;
+      if (isDbConnected()) {
+        driver = await Driver.findById(driverId).catch(() => null);
+      } else {
+        driver = findDriverById(driverId);
+      }
+      if (!driver) return res.status(404).json({ message: "Driver not found" });
+      if (driver.availability === false) return res.json([]);
+    }
+
     if (isDbConnected()) {
       const items = await RideRequest.find({ status: "pending" }).sort({ createdAt: -1 }).limit(50);
       return res.json(
@@ -620,17 +637,32 @@ async function respondRideRequest(req, res) {
     if (doc.status !== "pending") return res.status(409).json({ message: `Request already ${doc.status}` });
 
     let driver = null;
-    if (resolvedDriverId && isDbConnected()) {
-      driver = await Driver.findById(resolvedDriverId).catch(() => null);
+    if (resolvedDriverId) {
+      if (isDbConnected()) {
+        driver = await Driver.findById(resolvedDriverId).catch(() => null);
+      } else {
+        driver = findDriverById(resolvedDriverId);
+      }
     }
 
     doc.status = action;
     if (action === "accepted") {
+      if (!driver) {
+        return res.status(404).json({
+          message: "Driver profile not found. Sign in again and save Driver details first.",
+        });
+      }
+      if (driver && driver.availability === false) {
+        return res.status(409).json({
+          message: "You are currently unavailable for ride requests. Turn availability on in Driver details first.",
+        });
+      }
       doc.driverId = String(driver ? driver._id : resolvedDriverId || "").trim();
       doc.driverName = driver?.fullName ?? doc.driverName;
       doc.driverPhone = driver?.phone ?? doc.driverPhone;
       doc.vehicleNumber = driver?.vehicleNumber ?? doc.vehicleNumber;
-      doc.vehicleType = doc.vehicleType || "";
+      doc.vehicleType = driver?.vehicleType ?? doc.vehicleType;
+      doc.driverShowLocation = !!driver?.showLocation;
       doc.driverAtPickup = false;
       doc.driverAtPickupAt = null;
     }
@@ -653,6 +685,7 @@ async function respondRideRequest(req, res) {
           phone: doc.driverPhone,
           vehicleNumber: doc.vehicleNumber,
           vehicleType: doc.vehicleType,
+          showLocation: !!driver?.showLocation,
         },
       });
     }
@@ -667,6 +700,7 @@ async function respondRideRequest(req, res) {
         driverPhone: doc.driverPhone,
         vehicleNumber: doc.vehicleNumber,
         vehicleType: doc.vehicleType,
+        driverShowLocation: !!driver?.showLocation,
         ...pickupSnap,
       },
     });

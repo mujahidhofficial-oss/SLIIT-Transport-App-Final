@@ -39,7 +39,26 @@ export default function DriverTripActionScreen() {
   const loadPendingRequest = async () => {
     try {
       setLoadingRequest(true);
-      const res = await fetch(`${getApiBaseUrl()}/api/ride-requests/pending`);
+      const sess = await getDriverSession();
+      const driverId = String(sess?.driverId ?? "").trim();
+      if (!driverId) {
+        setRequestId("");
+        setPickup("");
+        setDrop("");
+        setDistance("");
+        setPrice("");
+        setCustomerName("");
+        setCustomerContact("");
+        setPickupCoord(null);
+        setDropCoord(null);
+        setServerBidLkr(null);
+        setServerBidDriverName(null);
+        setPassengerBidResponse("none");
+        return;
+      }
+      const res = await fetch(
+        `${getApiBaseUrl()}/api/ride-requests/pending?driverId=${encodeURIComponent(driverId)}`
+      );
       const data = (await res.json().catch(() => [])) as any;
       if (!res.ok) throw new Error(data?.message || "Failed to load pending ride requests");
       const first = Array.isArray(data) ? data[0] : null;

@@ -30,7 +30,15 @@ export default function DriverRideRequestsScreen() {
   const load = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${getApiBaseUrl()}/api/ride-requests/pending`);
+      const sess = await getDriverSession();
+      const driverId = String(sess?.driverId ?? "").trim();
+      if (!driverId) {
+        setItems([]);
+        return;
+      }
+      const res = await fetch(
+        `${getApiBaseUrl()}/api/ride-requests/pending?driverId=${encodeURIComponent(driverId)}`
+      );
       const data = (await res.json().catch(() => [])) as PendingRideRequest[] | { message?: string };
       if (!res.ok) throw new Error((data as any)?.message || "Failed to load requests");
       setItems(Array.isArray(data) ? data : []);
