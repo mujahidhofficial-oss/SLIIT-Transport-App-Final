@@ -521,8 +521,17 @@ export default function RideRequestScreen() {
                   {activeRequest.driver.vehicleNumber ? (
                     <Text style={styles.driverLine}>Vehicle · {activeRequest.driver.vehicleNumber}</Text>
                   ) : null}
+                  <Text style={styles.driverLine}>
+                    Live location sharing · {activeRequest.driver.showLocation ? "On" : "Off"}
+                  </Text>
 
-                  {acceptedPickup && acceptedDrop && liveDriverPoint && MapView && Marker && Polyline ? (
+                  {activeRequest.driver.showLocation &&
+                  acceptedPickup &&
+                  acceptedDrop &&
+                  liveDriverPoint &&
+                  MapView &&
+                  Marker &&
+                  Polyline ? (
                     <View style={styles.mapWrap}>
                       <Text style={styles.miniMapTitle}>Live mini map</Text>
                       <MapView
@@ -563,11 +572,15 @@ export default function RideRequestScreen() {
                         />
                       </MapView>
                     </View>
-                  ) : acceptedPickup && acceptedDrop ? (
+                  ) : activeRequest.driver.showLocation && acceptedPickup && acceptedDrop ? (
                     <View style={styles.mapWebHint}>
                       <Text style={styles.mapWebHintText}>Mini map is available on Android/iOS builds.</Text>
                     </View>
-                  ) : null}
+                  ) : (
+                    <View style={styles.mapWebHint}>
+                      <Text style={styles.mapWebHintText}>Driver has location sharing turned off.</Text>
+                    </View>
+                  )}
                 </View>
               ) : null}
 
