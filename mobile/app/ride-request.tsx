@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +13,7 @@ import { BrandColors } from "@/app/_theme/colors";
 import { Layout, Radii, ScreenBg, Space, Typography } from "@/app/_theme/tokens";
 import { getApiBaseUrl } from "@/app/_state/api";
 import { getAuthSession } from "@/app/_state/authSession";
+import { MapView, Marker, Polyline } from "./_components/maps/MapPrimitives";
 import {
   createRideRequest,
   useRideRequestStore,
@@ -21,11 +22,6 @@ import {
   mergeActiveRideRequest,
   sendPassengerBidResponse,
 } from "@/app/_state/rideRequestStore";
-
-const Maps = Platform.OS === "web" ? null : require("react-native-maps");
-const MapView = Maps?.default;
-const Marker = Maps?.Marker;
-const Polyline = Maps?.Polyline;
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const toRad = (d: number) => (d * Math.PI) / 180;

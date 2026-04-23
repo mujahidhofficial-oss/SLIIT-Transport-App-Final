@@ -163,6 +163,16 @@ export default function Profile() {
           )}
         </AppCard>
 
+        <Text style={styles.sectionLabel}>Support</Text>
+        <AppCard style={styles.card}>
+          <MenuRow
+            icon="chatbubbles-outline"
+            title="Contact us"
+            subtitle="Send a message to support for passenger or driver issues"
+            onPress={() => router.push("/contact-us")}
+          />
+        </AppCard>
+
         <AppCard style={[styles.footerCard, { marginBottom: Space.xl }]} padded>
           <PrimaryButton title="Log out" variant="outline" onPress={() => void onLogout()} />
           <Text style={styles.footerNote}>You will need to sign in again to book or drive.</Text>
