@@ -12,11 +12,7 @@ import { Elevated, Layout, Radii, Space, Typography } from "@/app/_theme/tokens"
 import { getApiBaseUrl } from "@/app/_state/api";
 import { getAuthSession } from "@/app/_state/authSession";
 import { getDriverSession } from "@/app/_state/driverSession";
-
-const Maps = Platform.OS === "web" ? null : require("react-native-maps");
-const MapView = Maps?.default;
-const Marker = Maps?.Marker;
-const Polyline = Maps?.Polyline;
+import { MapView, Marker, Polyline } from "./_components/maps/MapPrimitives";
 
 const PLACEHOLDER = BrandColors.textLight;
 const DECLINE_BG = "#E85D5D";
@@ -28,6 +24,8 @@ export default function DriverTripActionScreen() {
   const [price, setPrice] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerContact, setCustomerContact] = useState("");
+  const [vehicleType, setVehicleType] = useState("");
+  const [seatCount, setSeatCount] = useState("");
   const [submitBid, setSubmitBid] = useState("");
   const [serverBidLkr, setServerBidLkr] = useState<number | null>(null);
   const [serverBidDriverName, setServerBidDriverName] = useState<string | null>(null);
@@ -43,12 +41,9 @@ export default function DriverTripActionScreen() {
   const loadPendingRequest = async () => {
     try {
       setLoadingRequest(true);
-      const res = await fetch(`${getApiBaseUrl()}/api/ride-requests/pending`);
-      const data = (await res.json().catch(() => [])) as any;
-      if (!res.ok) throw new Error(data?.message || "Failed to load pending ride requests");
-      const first = Array.isArray(data) ? data[0] : null;
-
-      if (!first) {
+      const sess = await getDriverSession();
+      const driverId = String(sess?.driverId ?? "").trim();
+      if (!driverId) {
         setRequestId("");
         setPickup("");
         setDrop("");
@@ -63,12 +58,38 @@ export default function DriverTripActionScreen() {
         setPassengerBidResponse("none");
         return;
       }
+      const res = await fetch(
+        `${getApiBaseUrl()}/api/ride-requests/pending?driverId=${encodeURIComponent(driverId)}`
+      );
+      const data = (await res.json().catch(() => [])) as any;
+      if (!res.ok) throw new Error(data?.message || "Failed to load pending ride requests");
+      const first = Array.isArray(data) ? data[0] : null;
+
+      if (!first) {
+        setRequestId("");
+        setPickup("");
+        setDrop("");
+        setDistance("");
+        setPrice("");
+        setCustomerName("");
+        setCustomerContact("");
+        setVehicleType("");
+        setSeatCount("");
+        setPickupCoord(null);
+        setDropCoord(null);
+        setServerBidLkr(null);
+        setServerBidDriverName(null);
+        setPassengerBidResponse("none");
+        return;
+      }
 
       setRequestId(String(first.id ?? ""));
       setPickup(String(first.pickup?.address ?? ""));
       setDrop(String(first.dropoff?.address ?? ""));
       setDistance(Number.isFinite(Number(first.distanceKm)) ? Number(first.distanceKm).toFixed(1) : "");
       setPrice(Number.isFinite(Number(first.estimatedFareLkr)) ? Math.round(Number(first.estimatedFareLkr)).toString() : "");
+      setVehicleType(String((first as { vehicleType?: string }).vehicleType ?? "car").replace("_", " "));
+      setSeatCount(String(Math.max(1, Number((first as { seatCount?: number }).seatCount) || 1)));
       setCustomerName(String(first.customerName ?? first.customerId ?? "Customer"));
       setCustomerContact(String(first.customerPhone ?? ""));
       if (Number.isFinite(Number(first.pickup?.lat)) && Number.isFinite(Number(first.pickup?.lng))) {
@@ -260,6 +281,37 @@ export default function DriverTripActionScreen() {
                 placeholderTextColor={PLACEHOLDER}
                 value={drop}
                 onChangeText={setDrop}
+              />
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.fieldHalf}>
+              <View style={styles.labelRow}>
+                <Ionicons name="car-outline" size={12} color={BrandColors.primary} />
+                <Text style={styles.label}>Vehicle Type</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="car / bike / van / tuk tuk"
+                placeholderTextColor={PLACEHOLDER}
+                value={vehicleType}
+                onChangeText={setVehicleType}
+              />
+            </View>
+
+            <View style={styles.fieldHalf}>
+              <View style={styles.labelRow}>
+                <Ionicons name="people-outline" size={12} color={BrandColors.primary} />
+                <Text style={styles.label}>Seat Count</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="1"
+                placeholderTextColor={PLACEHOLDER}
+                keyboardType="numeric"
+                value={seatCount}
+                onChangeText={setSeatCount}
               />
             </View>
           </View>

@@ -43,6 +43,16 @@ const driverSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    vehicleBookDocumentUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    vehiclePhotoUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     vehicleNumber: {
       type: String,
       required: true,
