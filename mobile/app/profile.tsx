@@ -68,6 +68,8 @@ export default function Profile() {
   const studentId = user?.studentId?.trim() || readProfileField(profile, "studentId") || "";
   const phone = readProfileField(profile, "phone");
   const department = readProfileField(profile, "department");
+  const vehicleType = readProfileField(profile, "vehicleType");
+  const vehicleNumber = readProfileField(profile, "vehicleNumber");
   const role = user?.role ?? "student";
   const roleLabel = role === "driver" ? "Driver" : role === "admin" ? "Admin" : "Passenger";
   const roleHint =
@@ -112,7 +114,13 @@ export default function Profile() {
           {studentId ? <DetailRow label="Student / ID" value={studentId} icon="id-card-outline" /> : null}
           {phone ? <DetailRow label="Phone" value={phone} icon="call-outline" /> : null}
           {department ? <DetailRow label="Department" value={department} icon="business-outline" /> : null}
-          {!studentId && !phone && !department ? (
+          {role === "driver" && vehicleType ? (
+            <DetailRow label="Vehicle type" value={vehicleType} icon="car-sport-outline" />
+          ) : null}
+          {role === "driver" && vehicleNumber ? (
+            <DetailRow label="Vehicle number" value={vehicleNumber} icon="car-outline" />
+          ) : null}
+          {!studentId && !phone && !department && !(role === "driver" && (vehicleType || vehicleNumber)) ? (
             <Text style={styles.emptyFields}>
               Add more details when you register, or contact support to update your profile.
             </Text>
@@ -161,6 +169,16 @@ export default function Profile() {
               />
             </>
           )}
+        </AppCard>
+
+        <Text style={styles.sectionLabel}>Support</Text>
+        <AppCard style={styles.card}>
+          <MenuRow
+            icon="chatbubbles-outline"
+            title="Contact us"
+            subtitle="Send a message to support for passenger or driver issues"
+            onPress={() => router.push("/contact-us")}
+          />
         </AppCard>
 
         <AppCard style={[styles.footerCard, { marginBottom: Space.xl }]} padded>

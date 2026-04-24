@@ -35,7 +35,9 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/ride-requests", require("./routes/rideRequestRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/inquiries", require("./routes/inquiryRoutes"));
+app.use("/api/inquiries", require("./routes/inquiryRoutes"));
 app.use("/api/feedback", require("./routes/feedbackRoutes"));
+app.use("/api/notifications", require("./routes/notificationRoutes"));
 
 app.get("/", (req, res) => {
   res.send("Let Go Driver Module API Running");

@@ -47,6 +47,20 @@ function normalizeLicense(value = "") {
   return String(value).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 }
 
+function normalizeVehicleNumber(value = "") {
+  return String(value).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+}
+
+function canonicalizeOcrConfusables(value = "") {
+  return normalizeVehicleNumber(value)
+    .replace(/[OQDU]/g, "0")
+    .replace(/[IL]/g, "1")
+    .replace(/Z/g, "2")
+    .replace(/S/g, "5")
+    .replace(/B/g, "8")
+    .replace(/G/g, "6");
+}
+
 function licenseMatchesOcr(ocrText, typedRaw) {
   const typed = normalizeLicense(typedRaw);
   if (typed.length < 4) return false;
@@ -67,6 +81,37 @@ function licenseMatchesOcr(ocrText, typedRaw) {
   return false;
 }
 
+function vehicleNumberMatchesOcr(ocrText, typedRaw) {
+  const typed = normalizeVehicleNumber(typedRaw);
+  if (typed.length < 4) return false;
+
+  const normFull = normalizeVehicleNumber(ocrText);
+  if (normFull.includes(typed)) return true;
+  const typedCanonical = canonicalizeOcrConfusables(typed);
+  if (canonicalizeOcrConfusables(normFull).includes(typedCanonical)) return true;
+
+  const tokens = String(ocrText).split(/[^a-zA-Z0-9]+/).filter(Boolean);
+  for (const t of tokens) {
+    const nt = normalizeVehicleNumber(t);
+    if (nt === typed) return true;
+    if (canonicalizeOcrConfusables(nt) === typedCanonical) return true;
+  }
+
+  for (let i = 0; i < tokens.length - 1; i++) {
+    const merged = normalizeVehicleNumber(tokens[i] + tokens[i + 1]);
+    if (merged === typed) return true;
+    if (canonicalizeOcrConfusables(merged) === typedCanonical) return true;
+  }
+
+  for (let i = 0; i < tokens.length - 2; i++) {
+    const merged3 = normalizeVehicleNumber(tokens[i] + tokens[i + 1] + tokens[i + 2]);
+    if (merged3 === typed) return true;
+    if (canonicalizeOcrConfusables(merged3) === typedCanonical) return true;
+  }
+
+  return false;
+}
+
 /** Best-effort string to show the user when verification fails (not guaranteed correct). */
 function guessScannedLicenseFromOcr(text) {
   const tokens = String(text).split(/[^a-zA-Z0-9]+/).filter(Boolean);
@@ -78,10 +123,23 @@ function guessScannedLicenseFromOcr(text) {
   return best.trim();
 }
 
+function guessScannedVehicleNumberFromOcr(text) {
+  const tokens = String(text).split(/[^a-zA-Z0-9]+/).filter(Boolean);
+  let best = "";
+  for (const t of tokens) {
+    const n = normalizeVehicleNumber(t);
+    if (n.length >= 4 && n.length > normalizeVehicleNumber(best).length) best = t;
+  }
+  return best.trim();
+}
+
 module.exports = {
   normalizeLicense,
+  normalizeVehicleNumber,
   licenseMatchesOcr,
+  vehicleNumberMatchesOcr,
   guessScannedLicenseFromOcr,
+  guessScannedVehicleNumberFromOcr,
   runLicenseOcr,
   warmupLicenseOcrWorker,
 };

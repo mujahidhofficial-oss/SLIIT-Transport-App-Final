@@ -11,6 +11,7 @@ import { AppCard } from "@/app/_components/ui/AppCard";
 
 const SHORTCUTS = [
   { title: "Trip action", subtitle: "Pending rides, map, accept & finish", icon: "map-outline" as const, route: "/driver-trip-action" },
+  { title: "Notifications", subtitle: "Booking, payment, and account alerts", icon: "notifications-outline" as const, route: "/notifications" },
   { title: "Trip history", subtitle: "Rides you accepted & completed", icon: "time-outline" as const, route: "/trip-history" },
   { title: "Driver earnings", subtitle: "Trips finished & payments", icon: "wallet-outline" as const, route: "/driver-earnings" },
 ] as const;
@@ -73,6 +74,22 @@ export default function MoreScreen() {
           style={styles.heroCta}
         />
         <Text style={styles.ctaHint}>See pending rides, map, accept, then active trip & finish.</Text>
+
+        <Pressable
+          onPress={() => router.push("/notifications")}
+          style={({ pressed }) => [styles.notificationCard, pressed && styles.shortcutPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Open driver notifications"
+        >
+          <View style={styles.notificationIconWrap}>
+            <Ionicons name="notifications-outline" size={22} color={BrandColors.primaryDark} />
+          </View>
+          <View style={styles.notificationTextWrap}>
+            <Text style={styles.notificationTitle}>Driver notifications</Text>
+            <Text style={styles.notificationSub}>View booking, payment, and account alerts in one place.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={BrandColors.textMuted} />
+        </Pressable>
 
         <AppCard style={styles.hero} padded>
           <View style={styles.heroTop}>
@@ -256,6 +273,31 @@ const styles = StyleSheet.create({
     color: BrandColors.textDark,
     lineHeight: 22,
   },
+  notificationCard: {
+    marginTop: Space.xs,
+    marginBottom: Space.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.md,
+    backgroundColor: BrandColors.accentSoft,
+    borderRadius: Radii.xl,
+    borderWidth: 1,
+    borderColor: "rgba(8, 94, 155, 0.18)",
+    padding: Space.md,
+  },
+  notificationIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: Radii.md,
+    backgroundColor: BrandColors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: BrandColors.border,
+  },
+  notificationTextWrap: { flex: 1, minWidth: 0 },
+  notificationTitle: { fontSize: 16, fontWeight: "900", color: BrandColors.primaryDark },
+  notificationSub: { marginTop: 2, fontSize: 12, color: BrandColors.textMuted, lineHeight: 18 },
   sectionLabel: {
     marginTop: Space.lg,
     marginBottom: Space.xs,

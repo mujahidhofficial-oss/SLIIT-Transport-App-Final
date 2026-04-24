@@ -9,8 +9,15 @@ const {
   licenseMatchesOcr,
   guessScannedLicenseFromOcr,
   normalizeLicense,
+  normalizeVehicleNumber,
+  vehicleNumberMatchesOcr,
+  guessScannedVehicleNumberFromOcr,
 } = require("../utils/licenseOcr");
 const { issuePendingLicense, takePending } = require("../utils/pendingLicenseVerify");
+const {
+  issuePendingVehicleBook,
+  takePendingVehicleBook,
+} = require("../utils/pendingVehicleVerify");
 const {
   createDriver,
   findDriverByEmail,
@@ -19,6 +26,7 @@ const {
   updateDriverLicenseDocument,
 } = require("../utils/authMemoryStore");
 const { emailMatchExpr } = require("../utils/emailLookup");
+const { createAndEmitNotification } = require("../utils/notify");
 
 const isDbConnected = () => mongoose.connection?.readyState === 1;
 
@@ -33,6 +41,8 @@ const sanitizeDriver = (driver) => ({
     licenseCategory: driver.licenseCategory || "",
     licenseExpiry: driver.licenseExpiry || "",
     licenseDocumentUrl: driver.licenseDocumentUrl || "",
+    vehicleBookDocumentUrl: driver.vehicleBookDocumentUrl || "",
+    vehiclePhotoUrl: driver.vehiclePhotoUrl || "",
     vehicleNumber: driver.vehicleNumber,
     vehicleType: driver.vehicleType || "",
     currentVehicle: driver.currentVehicle || "",
@@ -49,15 +59,29 @@ const LICENSE_MISMATCH_MSG =
   "License number in the uploaded photo does not match the entered license number.";
 const OCR_UNREADABLE_MSG =
   "Could not read text from the license photo. Try a clearer, well-lit image with the license number visible.";
+const VEHICLE_BOOK_MISMATCH_MSG =
+  "Vehicle number in the uploaded vehicle book does not match the entered vehicle number.";
+const VEHICLE_BOOK_OCR_UNREADABLE_MSG =
+  "Could not read text from the vehicle book photo. Try a clearer, well-lit image with the vehicle number visible.";
 
 function isLicenseOcrSkipped() {
   const v = String(process.env.SKIP_LICENSE_OCR ?? "").trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
 }
 
+function isVehicleBookOcrSkipped() {
+  const v = String(process.env.SKIP_VEHICLE_BOOK_OCR ?? "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
 const registerDriver = async (req, res) => {
-  let filePath = req.file?.path;
+  const registerFiles = req.files || {};
+  const licenseUploadPath = registerFiles.licenseImage?.[0]?.path || null;
+  const vehicleImagePath = registerFiles.vehicleImage?.[0]?.path || null;
+  let filePath = licenseUploadPath;
+  let vehicleBookPath = null;
   const verifyTokenRaw = String(req.body?.verifyToken ?? "").trim();
+  const verifyVehicleTokenRaw = String(req.body?.verifyVehicleToken ?? "").trim();
 
   const deletePath = (p) => {
     if (p && fs.existsSync(p)) {
@@ -69,7 +93,10 @@ const registerDriver = async (req, res) => {
     }
   };
 
-  const cleanupMulterOnly = () => deletePath(req.file?.path);
+  const cleanupMulterOnly = () => {
+    deletePath(licenseUploadPath);
+    deletePath(vehicleImagePath);
+  };
 
   try {
     const {
@@ -81,9 +108,10 @@ const registerDriver = async (req, res) => {
       licenseCategory,
       licenseExpiry,
       vehicleNumber,
+      vehicleType,
     } = req.body || {};
 
-    if (!email || !password || !fullName || !phone || !licenseNumber || !vehicleNumber) {
+    if (!email || !password || !fullName || !phone || !licenseNumber || !vehicleNumber || !vehicleType) {
       cleanupMulterOnly();
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -117,16 +145,42 @@ const registerDriver = async (req, res) => {
             "License check expired or the license number changed. Tap “Check license & number” again with the same photo and number.",
         });
       }
-      if (req.file?.path && req.file.path !== rec.absPath) {
-        cleanupMulterOnly();
+      if (licenseUploadPath && licenseUploadPath !== rec.absPath) {
+        deletePath(licenseUploadPath);
       }
       filePath = rec.absPath;
       usedVerifyToken = true;
-    } else if (!req.file) {
+    } else if (!licenseUploadPath) {
       return res.status(400).json({
         message:
           "Add a license photo, or run “Check license & number” first and complete registration within 15 minutes.",
       });
+    }
+    if (!vehicleImagePath) {
+      cleanupMulterOnly();
+      return res.status(400).json({
+        message: "Add a clear vehicle photo (side/front view) before registration.",
+      });
+    }
+
+    const skipVehicleBookCheck = isVehicleBookOcrSkipped();
+    if (!skipVehicleBookCheck) {
+      if (!verifyVehicleTokenRaw) {
+        cleanupMulterOnly();
+        return res.status(400).json({
+          message:
+            "Run “Check vehicle book & number” first and complete registration within 15 minutes.",
+        });
+      }
+      const vehicleRec = takePendingVehicleBook(verifyVehicleTokenRaw, normalizeVehicleNumber(vehicleNumber));
+      if (!vehicleRec?.absPath || !fs.existsSync(vehicleRec.absPath)) {
+        cleanupMulterOnly();
+        return res.status(400).json({
+          message:
+            "Vehicle book check expired or the vehicle number changed. Tap “Check vehicle book & number” again with the same photo and number.",
+        });
+      }
+      vehicleBookPath = vehicleRec.absPath;
     }
 
     const skipOcr = isLicenseOcrSkipped() || usedVerifyToken;
@@ -161,6 +215,8 @@ const registerDriver = async (req, res) => {
     }
 
     const relativeUrl = `/uploads/${path.basename(filePath)}`;
+    const vehicleBookRelativeUrl = vehicleBookPath ? `/uploads/${path.basename(vehicleBookPath)}` : "";
+    const vehiclePhotoRelativeUrl = `/uploads/${path.basename(vehicleImagePath)}`;
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -174,8 +230,10 @@ const registerDriver = async (req, res) => {
           licenseCategory: String(licenseCategory ?? "").trim(),
           licenseExpiry: String(licenseExpiry ?? "").trim(),
           licenseDocumentUrl: relativeUrl,
+          vehicleBookDocumentUrl: vehicleBookRelativeUrl,
+          vehiclePhotoUrl: vehiclePhotoRelativeUrl,
           vehicleNumber: String(vehicleNumber).trim(),
-          vehicleType: "",
+          vehicleType: String(vehicleType).trim(),
           currentVehicle: String(vehicleNumber).trim(),
           showLocation: false,
           availability: true,
@@ -189,11 +247,21 @@ const registerDriver = async (req, res) => {
           licenseCategory,
           licenseExpiry,
           vehicleNumber,
+          vehicleType,
           licenseDocumentUrl: relativeUrl,
+          vehicleBookDocumentUrl: vehicleBookRelativeUrl,
+          vehiclePhotoUrl: vehiclePhotoRelativeUrl,
         });
 
     const token = signToken({ sub: driver._id, role: "driver" });
     const user = sanitizeDriver(driver);
+    await createAndEmitNotification(req, {
+      userId: String(driver._id),
+      type: "auth",
+      title: "Signup successful",
+      message: "Your driver account was created successfully.",
+      meta: { role: "driver", email: driver.email },
+    });
 
     const ocrDevSkipped = isLicenseOcrSkipped() && !usedVerifyToken;
     const regMessage = usedVerifyToken
@@ -223,11 +291,15 @@ const registerDriver = async (req, res) => {
         licenseCategory: driver.licenseCategory || "",
         licenseExpiry: driver.licenseExpiry || "",
         licenseDocumentUrl: driver.licenseDocumentUrl || "",
+        vehicleBookDocumentUrl: driver.vehicleBookDocumentUrl || "",
+        vehiclePhotoUrl: driver.vehiclePhotoUrl || "",
         vehicleNumber: driver.vehicleNumber,
       },
     });
   } catch (error) {
     deletePath(filePath);
+    deletePath(vehicleBookPath);
+    deletePath(vehicleImagePath);
     if (error.code === 11000) {
       return res.status(409).json({ message: "An account with this email already exists" });
     }
@@ -308,6 +380,78 @@ const verifyDriverLicense = async (req, res) => {
   }
 };
 
+const verifyDriverVehicleBook = async (req, res) => {
+  const filePath = req.file?.path;
+
+  const deletePathLocal = (p) => {
+    if (p && fs.existsSync(p)) {
+      try {
+        fs.unlinkSync(p);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  };
+
+  try {
+    const vehicleNumber = String(req.body?.vehicleNumber ?? "").trim();
+    if (!req.file) {
+      return res.status(400).json({ message: "Vehicle book photo is required (JPG or PNG)." });
+    }
+    if (!vehicleNumber) {
+      deletePathLocal(filePath);
+      return res.status(400).json({ message: "Enter your vehicle number first." });
+    }
+
+    if (isVehicleBookOcrSkipped()) {
+      deletePathLocal(filePath);
+      return res.json({
+        verified: true,
+        vehicleBookOcrSkipped: true,
+        typedNormalized: normalizeVehicleNumber(vehicleNumber),
+        message: "Server has vehicle book OCR disabled — photo vs number was not compared.",
+      });
+    }
+
+    let ocrText = "";
+    try {
+      ocrText = await runLicenseOcr(filePath);
+    } catch {
+      deletePathLocal(filePath);
+      return res.status(500).json({
+        message: "Could not read the vehicle book photo. Try again with better lighting.",
+      });
+    }
+
+    if (!String(ocrText).trim()) {
+      deletePathLocal(filePath);
+      return res.status(400).json({ message: VEHICLE_BOOK_OCR_UNREADABLE_MSG });
+    }
+
+    if (!vehicleNumberMatchesOcr(ocrText, vehicleNumber)) {
+      deletePathLocal(filePath);
+      return res.status(400).json({
+        message: VEHICLE_BOOK_MISMATCH_MSG,
+        scannedVehicleNumber: guessScannedVehicleNumberFromOcr(ocrText),
+        typedNormalized: normalizeVehicleNumber(vehicleNumber),
+      });
+    }
+
+    const verifyVehicleToken = issuePendingVehicleBook(filePath, normalizeVehicleNumber(vehicleNumber));
+    return res.json({
+      verified: true,
+      verifyVehicleToken,
+      typedNormalized: normalizeVehicleNumber(vehicleNumber),
+      scannedHint: guessScannedVehicleNumberFromOcr(ocrText),
+      message:
+        "Vehicle number matches the vehicle book photo. Complete registration within 15 minutes.",
+    });
+  } catch (e) {
+    deletePathLocal(filePath);
+    return res.status(500).json({ message: e.message });
+  }
+};
+
 const loginDriver = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -335,6 +479,13 @@ const loginDriver = async (req, res) => {
 
     const token = signToken({ sub: driver._id, role: "driver" });
     const user = sanitizeDriver(driver);
+    await createAndEmitNotification(req, {
+      userId: String(driver._id),
+      type: "auth",
+      title: "Login successful",
+      message: "Driver login successful.",
+      meta: { role: "driver", email: driver.email },
+    });
 
     return res.json({
       message: "Driver login successful",
@@ -542,6 +693,7 @@ const uploadDriverLicense = async (req, res) => {
 module.exports = {
   registerDriver,
   verifyDriverLicense,
+  verifyDriverVehicleBook,
   loginDriver,
   getDriverMe,
   updateDriverMe,
