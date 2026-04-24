@@ -19,6 +19,7 @@ const {
   updateDriverLicenseDocument,
 } = require("../utils/authMemoryStore");
 const { emailMatchExpr } = require("../utils/emailLookup");
+const { createAndEmitNotification } = require("../utils/notify");
 
 const isDbConnected = () => mongoose.connection?.readyState === 1;
 
@@ -194,6 +195,13 @@ const registerDriver = async (req, res) => {
 
     const token = signToken({ sub: driver._id, role: "driver" });
     const user = sanitizeDriver(driver);
+    await createAndEmitNotification(req, {
+      userId: String(driver._id),
+      type: "auth",
+      title: "Signup successful",
+      message: "Your driver account was created successfully.",
+      meta: { role: "driver", email: driver.email },
+    });
 
     const ocrDevSkipped = isLicenseOcrSkipped() && !usedVerifyToken;
     const regMessage = usedVerifyToken
@@ -335,6 +343,13 @@ const loginDriver = async (req, res) => {
 
     const token = signToken({ sub: driver._id, role: "driver" });
     const user = sanitizeDriver(driver);
+    await createAndEmitNotification(req, {
+      userId: String(driver._id),
+      type: "auth",
+      title: "Login successful",
+      message: "Driver login successful.",
+      meta: { role: "driver", email: driver.email },
+    });
 
     return res.json({
       message: "Driver login successful",

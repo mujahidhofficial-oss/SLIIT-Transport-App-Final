@@ -3,6 +3,7 @@ const Trip = require("../models/Trip");
 const mongoose = require("mongoose");
 const { computeDynamicPricePerSeat } = require("../utils/dynamicPricing");
 const memoryStore = require("../utils/memoryStore");
+const { createAndEmitNotification } = require("../utils/notify");
 
 function emitIfIo(req, event, payload) {
   const io = req.app.get("io");
@@ -71,6 +72,20 @@ const createBookingRequest = async (req, res) => {
         tripId: String(trip._id),
         status: "pending",
       });
+      await createAndEmitNotification(req, {
+        userId: String(customerId),
+        type: "booking",
+        title: "Booking created",
+        message: "Your booking request is pending driver confirmation.",
+        meta: { bookingId: String(booking._id), tripId: String(trip._id), status: "pending" },
+      });
+      await createAndEmitNotification(req, {
+        userId: String(trip.driverId),
+        type: "booking",
+        title: "New booking request",
+        message: "You received a new booking request. Please accept or decline it.",
+        meta: { bookingId: String(booking._id), tripId: String(trip._id), status: "pending" },
+      });
 
       return res.status(201).json({
         message: "Booking request sent successfully",
@@ -130,6 +145,20 @@ const createBookingRequest = async (req, res) => {
       bookingId: String(booking._id),
       tripId: String(trip._id),
       status: "pending",
+    });
+    await createAndEmitNotification(req, {
+      userId: String(customerId),
+      type: "booking",
+      title: "Booking created",
+      message: "Your booking request is pending driver confirmation.",
+      meta: { bookingId: String(booking._id), tripId: String(trip._id), status: "pending" },
+    });
+    await createAndEmitNotification(req, {
+      userId: String(trip.driverId),
+      type: "booking",
+      title: "New booking request",
+      message: "You received a new booking request. Please accept or decline it.",
+      meta: { bookingId: String(booking._id), tripId: String(trip._id), status: "pending" },
     });
 
     res.status(201).json({
@@ -313,6 +342,16 @@ const respondToBooking = async (req, res) => {
         tripId: String(trip._id),
         status: booking.status,
       });
+      await createAndEmitNotification(req, {
+        userId: String(booking.customerId),
+        type: "booking",
+        title: `Booking ${booking.status}`,
+        message:
+          booking.status === "accepted"
+            ? "Your booking was accepted by the driver."
+            : "Your booking was declined by the driver.",
+        meta: { bookingId: String(booking._id), tripId: String(trip._id), status: booking.status },
+      });
 
       return res.status(200).json({
         message: `Booking ${action} successfully`,
@@ -367,6 +406,16 @@ const respondToBooking = async (req, res) => {
       tripId: String(trip._id),
       status: booking.status,
     });
+    await createAndEmitNotification(req, {
+      userId: String(booking.customerId),
+      type: "booking",
+      title: `Booking ${booking.status}`,
+      message:
+        booking.status === "accepted"
+          ? "Your booking was accepted by the driver."
+          : "Your booking was declined by the driver.",
+      meta: { bookingId: String(booking._id), tripId: String(trip._id), status: booking.status },
+    });
 
     res.status(200).json({
       message: `Booking ${action} successfully`,
@@ -415,6 +464,13 @@ const cancelBooking = async (req, res) => {
         tripId: String(trip._id),
         status: "cancelled",
       });
+      await createAndEmitNotification(req, {
+        userId: String(booking.customerId),
+        type: "booking",
+        title: "Booking cancelled",
+        message: "Your booking was cancelled.",
+        meta: { bookingId: String(booking._id), tripId: String(trip._id), status: "cancelled" },
+      });
 
       return res.json({ message: "Booking cancelled", booking, remainingSeats: trip.availableSeats });
     }
@@ -450,6 +506,13 @@ const cancelBooking = async (req, res) => {
       bookingId: String(booking._id),
       tripId: String(trip._id),
       status: "cancelled",
+    });
+    await createAndEmitNotification(req, {
+      userId: String(booking.customerId),
+      type: "booking",
+      title: "Booking cancelled",
+      message: "Your booking was cancelled.",
+      meta: { bookingId: String(booking._id), tripId: String(trip._id), status: "cancelled" },
     });
 
     res.json({ message: "Booking cancelled", booking, remainingSeats: trip.availableSeats });

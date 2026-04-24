@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenHeader } from "@/app/_components/ui/ScreenHeader";
-import { ScreenShell } from "@/app/_components/ui/ScreenShell";
+import { ScreenFixed } from "@/app/_components/ui/ScreenShell";
 import { AppCard } from "@/app/_components/ui/AppCard";
 import { PrimaryButton } from "@/app/_components/PrimaryButton";
 import { BrandColors } from "@/app/_theme/colors";
@@ -66,55 +66,54 @@ export default function DriverRideRequestsScreen() {
   };
 
   return (
-    <ScreenShell>
-      <View style={[styles.root, { paddingTop: insets.top + Space.sm }]}>
-        <View style={styles.top}>
-          <ScreenHeader
-            showBack
-            title="Ride requests (nearby)"
-            subtitle="Accept or decline customer requests (on-demand)."
-          />
-          <View style={{ marginTop: Space.md }}>
-            <PrimaryButton title={loading ? "Loading…" : "Refresh"} onPress={() => void load()} />
+    <ScreenFixed style={styles.root}>
+      <FlatList
+        data={items}
+        keyExtractor={(it) => it.id}
+        contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]}
+        ListHeaderComponent={
+          <View style={[styles.top, { paddingTop: insets.top + Space.sm }]}>
+            <ScreenHeader
+              showBack
+              title="Ride requests (nearby)"
+              subtitle="Accept or decline customer requests (on-demand)."
+            />
+            <View style={{ marginTop: Space.md }}>
+              <PrimaryButton title={loading ? "Loading…" : "Refresh"} onPress={() => void load()} />
+            </View>
           </View>
-        </View>
+        }
+        renderItem={({ item }) => (
+          <AppCard style={styles.card} padded>
+            <Text style={styles.route} numberOfLines={2}>
+              {item.pickup.address || "Pickup"} → {item.dropoff.address || "Drop"}
+            </Text>
+            <Text style={styles.meta}>
+              ~{item.distanceKm.toFixed(1)} km · Est. fare LKR {Math.round(item.estimatedFareLkr).toLocaleString("en-LK")}
+            </Text>
+            <Text style={styles.metaSmall}>Customer · {item.customerId}</Text>
 
-        <FlatList
-          data={items}
-          keyExtractor={(it) => it.id}
-          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]}
-          renderItem={({ item }) => (
-            <AppCard style={styles.card} padded>
-              <Text style={styles.route} numberOfLines={2}>
-                {item.pickup.address || "Pickup"} → {item.dropoff.address || "Drop"}
-              </Text>
-              <Text style={styles.meta}>
-                ~{item.distanceKm.toFixed(1)} km · Est. fare LKR {Math.round(item.estimatedFareLkr).toLocaleString("en-LK")}
-              </Text>
-              <Text style={styles.metaSmall}>Customer · {item.customerId}</Text>
-
-              <View style={styles.actions}>
-                <PrimaryButton title="Accept" onPress={() => void respond(item.id, "accepted")} style={{ flex: 1 }} />
-                <PrimaryButton
-                  title="Decline"
-                  variant="outline"
-                  onPress={() => void respond(item.id, "declined")}
-                  style={{ flex: 1 }}
-                />
-              </View>
-            </AppCard>
-          )}
-          ListEmptyComponent={
-            <Text style={styles.empty}>No pending ride requests right now. Pull refresh or wait for a customer request.</Text>
-          }
-        />
-      </View>
-    </ScreenShell>
+            <View style={styles.actions}>
+              <PrimaryButton title="Accept" onPress={() => void respond(item.id, "accepted")} style={{ flex: 1 }} />
+              <PrimaryButton
+                title="Decline"
+                variant="outline"
+                onPress={() => void respond(item.id, "declined")}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </AppCard>
+        )}
+        ListEmptyComponent={
+          <Text style={styles.empty}>No pending ride requests right now. Pull refresh or wait for a customer request.</Text>
+        }
+      />
+    </ScreenFixed>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: ScreenBg.light },
+  root: { flex: 1, backgroundColor: ScreenBg.light, paddingHorizontal: 0 },
   top: {
     paddingHorizontal: Layout.screenPaddingX - 2,
     maxWidth: Layout.contentMaxWidth,
