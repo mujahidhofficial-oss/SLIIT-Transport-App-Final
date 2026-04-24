@@ -1,0 +1,19 @@
+node_modules/
+**/node_modules/
+.expo/
+dist/
+build/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+**/.env
+.env.*
+**/.env.*
+
+# Local IDE/system files
+.vscode/
+.idea/
