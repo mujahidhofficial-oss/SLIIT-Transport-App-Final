@@ -3,15 +3,15 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "rea
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { io } from "socket.io-client";
-import { AppCard } from "@/app/_components/ui/AppCard";
-import { PrimaryButton } from "@/app/_components/PrimaryButton";
-import { ScreenHeader } from "@/app/_components/ui/ScreenHeader";
-import { ScreenFixed } from "@/app/_components/ui/ScreenShell";
-import { getApiBaseUrl } from "@/app/_state/api";
-import { getAuthSession } from "@/app/_state/authSession";
-import { getDriverSession } from "@/app/_state/driverSession";
-import { BrandColors } from "@/app/_theme/colors";
-import { Layout, Radii, ScreenBg, Space } from "@/app/_theme/tokens";
+import { AppCard } from "./_components/ui/AppCard";
+import { PrimaryButton } from "./_components/PrimaryButton";
+import { ScreenHeader } from "./_components/ui/ScreenHeader";
+import { ScreenFixed } from "./_components/ui/ScreenShell";
+import { getApiBaseUrl } from "./_state/api";
+import { getAuthSession } from "./_state/authSession";
+import { getDriverSession } from "./_state/driverSession";
+import { BrandColors } from "./_theme/colors";
+import { Layout, Radii, ScreenBg, Space } from "./_theme/tokens";
 
 type NotificationItem = {
   _id: string;
