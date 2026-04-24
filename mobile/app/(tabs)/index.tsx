@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BrandColors } from "@/app/_theme/colors";
 import { Elevated, Layout, Radii, ScreenBg, Space, Typography } from "@/app/_theme/tokens";
 import { getAuthSession, type AuthUser } from "@/app/_state/authSession";
+import { getApiBaseUrl } from "@/app/_state/api";
 
 const quickActions: QuickAction[] = [
   {
@@ -76,10 +77,27 @@ function ActionCard({ item, onPress }: { item: QuickAction; onPress: () => void 
 
 export default function HomeScreen() {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const refreshUser = useCallback(async () => {
     const s = await getAuthSession();
     setUser(s?.user ?? null);
+    const userId = String(s?.user?.id ?? "").trim();
+    if (!userId) {
+      setUnreadCount(0);
+      return;
+    }
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/notifications?userId=${encodeURIComponent(userId)}`);
+      const body = (await res.json().catch(() => [])) as { read?: boolean }[];
+      if (!res.ok || !Array.isArray(body)) {
+        setUnreadCount(0);
+        return;
+      }
+      setUnreadCount(body.filter((n) => !n.read).length);
+    } catch {
+      setUnreadCount(0);
+    }
   }, []);
 
   useEffect(() => {
@@ -96,6 +114,7 @@ export default function HomeScreen() {
   const name = firstNameFromUser(user);
   const heroLine = name ? `${greet}, ${name}` : greet;
   const isDriver = user?.role === "driver";
+  const unreadLabel = useMemo(() => (unreadCount > 99 ? "99+" : String(unreadCount)), [unreadCount]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -114,8 +133,19 @@ export default function HomeScreen() {
               <Text style={styles.brandSub}>Home · book a driver in a few taps</Text>
             </View>
 
-            <TouchableOpacity style={styles.bellBtn} activeOpacity={0.88} accessibilityRole="button" accessibilityLabel="Notifications">
+            <TouchableOpacity
+              style={styles.bellBtn}
+              activeOpacity={0.88}
+              accessibilityRole="button"
+              accessibilityLabel="Notifications"
+              onPress={() => router.push("/notifications")}
+            >
               <Ionicons name="notifications-outline" size={22} color={BrandColors.primaryDark} />
+              {unreadCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadLabel}</Text>
+                </View>
+              ) : null}
             </TouchableOpacity>
           </View>
 
@@ -223,6 +253,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.5)",
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: "#E53935",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: BrandColors.white,
+  },
+  badgeText: {
+    color: BrandColors.white,
+    fontSize: 10,
+    fontWeight: "900",
   },
   heroCard: {
     backgroundColor: "rgba(255,255,255,0.96)",

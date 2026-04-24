@@ -5,6 +5,7 @@ const Driver = require("../models/Driver");
 const { signToken } = require("../config/auth");
 const { createUser, findUserByEmail, findDriverByEmail } = require("../utils/authMemoryStore");
 const { emailMatchExpr } = require("../utils/emailLookup");
+const { createAndEmitNotification } = require("../utils/notify");
 
 const isDbConnected = () => mongoose.connection?.readyState === 1;
 
@@ -69,12 +70,26 @@ const register = async (req, res) => {
           department: String(profile?.department ?? ""),
         },
       });
+      await createAndEmitNotification(req, {
+        userId: String(user._id),
+        type: "auth",
+        title: "Signup successful",
+        message: "Your account was created successfully.",
+        meta: { role: user.role, email: user.email },
+      });
 
       return res.status(201).json({ message: "Registered successfully", user: sanitizeUser(user) });
     }
 
     // In-memory fallback
     const memUser = await createUser({ studentId, email, password, role: role || "student", profile });
+    await createAndEmitNotification(req, {
+      userId: String(memUser._id),
+      type: "auth",
+      title: "Signup successful",
+      message: "Your account was created successfully.",
+      meta: { role: memUser.role, email: memUser.email },
+    });
     return res.status(201).json({ message: "Registered successfully (memory)", user: sanitizeUser(memUser) });
   } catch (e) {
     res.status(500).json({ message: e.message });
@@ -97,6 +112,13 @@ const login = async (req, res) => {
         return res.status(401).json({ message: "Incorrect password" });
       }
       const token = signToken({ sub: user._id, role: user.role });
+      await createAndEmitNotification(req, {
+        userId: String(user._id),
+        type: "auth",
+        title: "Login successful",
+        message: "You logged in successfully.",
+        meta: { role: user.role, email: user.email },
+      });
       return res.json({ message: "Login successful", token, user: sanitizeUser(user) });
     }
 
@@ -118,6 +140,13 @@ const login = async (req, res) => {
     }
 
     const token = signToken({ sub: driver._id, role: "driver" });
+    await createAndEmitNotification(req, {
+      userId: String(driver._id),
+      type: "auth",
+      title: "Login successful",
+      message: "Driver login successful.",
+      meta: { role: "driver", email: driver.email },
+    });
     return res.json({
       message: "Login successful",
       token,
