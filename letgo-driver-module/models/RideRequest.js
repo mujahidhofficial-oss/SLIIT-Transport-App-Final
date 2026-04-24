@@ -15,6 +15,8 @@ const rideRequestSchema = new mongoose.Schema(
     },
     distanceKm: { type: Number, default: 0 },
     estimatedFareLkr: { type: Number, default: 0 },
+    vehicleType: { type: String, default: "car", trim: true },
+    seatCount: { type: Number, default: 1 },
     status: {
       type: String,
       enum: ["pending", "accepted", "declined", "cancelled", "completed"],

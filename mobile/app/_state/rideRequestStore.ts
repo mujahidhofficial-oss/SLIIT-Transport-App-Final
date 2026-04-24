@@ -5,6 +5,7 @@ import { getAuthSession } from "@/app/_state/authSession";
 
 export type RideRequestStatus = "pending" | "accepted" | "declined" | "cancelled" | "completed";
 export type PassengerBidResponse = "none" | "accepted" | "declined";
+export type VehicleType = "car" | "bike" | "van" | "tuk_tuk";
 
 export type RideRequest = {
   id: string;
@@ -13,6 +14,8 @@ export type RideRequest = {
   dropoff: { address: string; lat: number; lng: number };
   distanceKm: number;
   estimatedFareLkr: number;
+  vehicleType?: VehicleType;
+  seatCount?: number;
   status: RideRequestStatus;
   driver?: {
     id: string;
@@ -178,6 +181,8 @@ export function getActiveRideRequest(): RideRequest | null {
 export async function createRideRequest(input: {
   pickup: { address: string; lat: number; lng: number };
   dropoff: { address: string; lat: number; lng: number };
+  vehicleType: VehicleType;
+  seatCount: number;
 }) {
   startSocketOnce();
   const session = await getAuthSession();
@@ -187,12 +192,24 @@ export async function createRideRequest(input: {
   const res = await fetch(`${API_BASE_URL}/api/ride-requests`, {
     method: "POST",
     headers: await jsonHeadersWithAuth(),
-    body: JSON.stringify({ customerId, pickup: input.pickup, dropoff: input.dropoff }),
+    body: JSON.stringify({
+      customerId,
+      pickup: input.pickup,
+      dropoff: input.dropoff,
+      vehicleType: input.vehicleType,
+      seatCount: input.seatCount,
+    }),
   });
   const body = (await res.json().catch(() => ({}))) as any;
   if (!res.ok) throw new Error(body?.message || `Request failed (${res.status})`);
 
   const r = body?.request ?? {};
+  const normalizeVehicleType = (v: unknown): VehicleType => {
+    const s = String(v ?? "").trim().toLowerCase();
+    if (s === "bike" || s === "van" || s === "car") return s;
+    if (s === "tuk_tuk" || s === "tuktuk" || s === "tuk-tuk") return "tuk_tuk";
+    return "car";
+  };
   const req: RideRequest = {
     id: String(r.id),
     customerId: String(r.customerId ?? customerId),
@@ -208,6 +225,8 @@ export async function createRideRequest(input: {
     },
     distanceKm: Number(r.distanceKm ?? 0),
     estimatedFareLkr: Number(r.estimatedFareLkr ?? 0),
+    vehicleType: normalizeVehicleType(r.vehicleType ?? input.vehicleType),
+    seatCount: Number(r.seatCount ?? input.seatCount),
     status: String(r.status ?? "pending") as RideRequestStatus,
     driver: r.driverId
       ? {

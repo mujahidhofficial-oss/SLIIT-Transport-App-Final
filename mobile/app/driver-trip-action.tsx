@@ -24,6 +24,8 @@ export default function DriverTripActionScreen() {
   const [price, setPrice] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerContact, setCustomerContact] = useState("");
+  const [vehicleType, setVehicleType] = useState("");
+  const [seatCount, setSeatCount] = useState("");
   const [submitBid, setSubmitBid] = useState("");
   const [serverBidLkr, setServerBidLkr] = useState<number | null>(null);
   const [serverBidDriverName, setServerBidDriverName] = useState<string | null>(null);
@@ -71,6 +73,8 @@ export default function DriverTripActionScreen() {
         setPrice("");
         setCustomerName("");
         setCustomerContact("");
+        setVehicleType("");
+        setSeatCount("");
         setPickupCoord(null);
         setDropCoord(null);
         setServerBidLkr(null);
@@ -84,6 +88,8 @@ export default function DriverTripActionScreen() {
       setDrop(String(first.dropoff?.address ?? ""));
       setDistance(Number.isFinite(Number(first.distanceKm)) ? Number(first.distanceKm).toFixed(1) : "");
       setPrice(Number.isFinite(Number(first.estimatedFareLkr)) ? Math.round(Number(first.estimatedFareLkr)).toString() : "");
+      setVehicleType(String((first as { vehicleType?: string }).vehicleType ?? "car").replace("_", " "));
+      setSeatCount(String(Math.max(1, Number((first as { seatCount?: number }).seatCount) || 1)));
       setCustomerName(String(first.customerName ?? first.customerId ?? "Customer"));
       setCustomerContact(String(first.customerPhone ?? ""));
       if (Number.isFinite(Number(first.pickup?.lat)) && Number.isFinite(Number(first.pickup?.lng))) {
@@ -275,6 +281,37 @@ export default function DriverTripActionScreen() {
                 placeholderTextColor={PLACEHOLDER}
                 value={drop}
                 onChangeText={setDrop}
+              />
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.fieldHalf}>
+              <View style={styles.labelRow}>
+                <Ionicons name="car-outline" size={12} color={BrandColors.primary} />
+                <Text style={styles.label}>Vehicle Type</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="car / bike / van / tuk tuk"
+                placeholderTextColor={PLACEHOLDER}
+                value={vehicleType}
+                onChangeText={setVehicleType}
+              />
+            </View>
+
+            <View style={styles.fieldHalf}>
+              <View style={styles.labelRow}>
+                <Ionicons name="people-outline" size={12} color={BrandColors.primary} />
+                <Text style={styles.label}>Seat Count</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="1"
+                placeholderTextColor={PLACEHOLDER}
+                keyboardType="numeric"
+                value={seatCount}
+                onChangeText={setSeatCount}
               />
             </View>
           </View>

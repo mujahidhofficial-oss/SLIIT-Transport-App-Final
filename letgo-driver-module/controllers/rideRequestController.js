@@ -24,22 +24,50 @@ function haversineKm(a, b) {
   return R * c;
 }
 
-function estimateFareLkr(distanceKm) {
+const VEHICLE_RULES = {
+  bike: { maxSeats: 1, base: 100, perKm: 60 },
+  tuk_tuk: { maxSeats: 2, base: 130, perKm: 75 },
+  car: { maxSeats: 3, base: 160, perKm: 90 },
+  van: { maxSeats: 5, base: 220, perKm: 110 },
+};
+
+function normalizeVehicleType(raw) {
+  const v = String(raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  if (v === "tuktuk") return "tuk_tuk";
+  if (v === "bike" || v === "car" || v === "van" || v === "tuk_tuk") return v;
+  return "car";
+}
+
+function isPeakTime(now = new Date()) {
+  const h = now.getHours();
+  return (h >= 7 && h < 10) || (h >= 17 && h < 20);
+}
+
+function estimateFareLkr(distanceKm, vehicleType, seatCount) {
   const km = Math.max(0, Number(distanceKm) || 0);
-  const base = 150;
-  const perKm = 80;
-  return Math.round(base + km * perKm);
+  const vt = normalizeVehicleType(vehicleType);
+  const rule = VEHICLE_RULES[vt] || VEHICLE_RULES.car;
+  const seats = Math.max(1, Math.min(rule.maxSeats, Math.round(Number(seatCount) || 1)));
+  const peakMultiplier = isPeakTime() ? 1.25 : 0.9;
+  const distanceComponent = rule.base + km * rule.perKm;
+  return Math.round(distanceComponent * peakMultiplier * seats);
 }
 
 async function createRideRequest(req, res) {
   try {
-    const { customerId, pickup, dropoff } = req.body || {};
+    const { customerId, pickup, dropoff, vehicleType, seatCount } = req.body || {};
     if (!customerId) return res.status(400).json({ message: "customerId is required" });
     if (!pickup?.lat || !pickup?.lng) return res.status(400).json({ message: "pickup lat/lng required" });
     if (!dropoff?.lat || !dropoff?.lng) return res.status(400).json({ message: "dropoff lat/lng required" });
 
     const distanceKm = haversineKm({ lat: pickup.lat, lng: pickup.lng }, { lat: dropoff.lat, lng: dropoff.lng });
-    const estimatedFareLkr = estimateFareLkr(distanceKm);
+    const normalizedVehicleType = normalizeVehicleType(vehicleType);
+    const maxSeats = VEHICLE_RULES[normalizedVehicleType]?.maxSeats ?? 3;
+    const normalizedSeatCount = Math.max(1, Math.min(maxSeats, Math.round(Number(seatCount) || 1)));
+    const estimatedFareLkr = estimateFareLkr(distanceKm, normalizedVehicleType, normalizedSeatCount);
 
     let doc;
     if (isDbConnected()) {
@@ -57,6 +85,8 @@ async function createRideRequest(req, res) {
         },
         distanceKm,
         estimatedFareLkr,
+        vehicleType: normalizedVehicleType,
+        seatCount: normalizedSeatCount,
         status: "pending",
       });
     } else {
@@ -75,6 +105,8 @@ async function createRideRequest(req, res) {
         },
         distanceKm,
         estimatedFareLkr,
+        vehicleType: normalizedVehicleType,
+        seatCount: normalizedSeatCount,
         status: "pending",
         driverId: "",
         driverName: "",
@@ -112,6 +144,8 @@ async function createRideRequest(req, res) {
         dropoff: doc.dropoff,
         distanceKm: doc.distanceKm,
         estimatedFareLkr: doc.estimatedFareLkr,
+        vehicleType: doc.vehicleType || normalizedVehicleType,
+        seatCount: Number(doc.seatCount) || normalizedSeatCount,
         status: doc.status,
         driverId: doc.driverId,
         driverName: doc.driverName,
@@ -266,6 +300,8 @@ async function getRideRequestById(req, res) {
       driverId: doc.driverId ? String(doc.driverId) : "",
       driverName: doc.driverName || "",
       estimatedFareLkr: doc.estimatedFareLkr,
+      vehicleType: doc.vehicleType || "",
+      seatCount: Number(doc.seatCount) || 1,
       pickup: doc.pickup,
       dropoff: doc.dropoff,
       vehicleNumber: doc.vehicleNumber || "",
@@ -477,6 +513,8 @@ async function listMyRideRequests(req, res) {
         dropoff: doc.dropoff,
         distanceKm: doc.distanceKm,
         estimatedFareLkr: doc.estimatedFareLkr,
+        vehicleType: doc.vehicleType || "",
+        seatCount: Number(doc.seatCount) || 1,
         status: doc.status,
         driverId: doc.driverId ? String(doc.driverId) : "",
         driverName: doc.driverName || "",
@@ -530,6 +568,8 @@ async function listDriverRideRequests(req, res) {
         dropoff: doc.dropoff,
         distanceKm: doc.distanceKm,
         estimatedFareLkr: doc.estimatedFareLkr,
+        vehicleType: doc.vehicleType || "",
+        seatCount: Number(doc.seatCount) || 1,
         status: doc.status,
         driverId: doc.driverId ? String(doc.driverId) : "",
         driverName: doc.driverName || "",
@@ -570,6 +610,8 @@ async function listPendingRideRequests(req, res) {
           dropoff: doc.dropoff,
           distanceKm: doc.distanceKm,
           estimatedFareLkr: doc.estimatedFareLkr,
+          vehicleType: doc.vehicleType || "",
+          seatCount: Number(doc.seatCount) || 1,
           status: doc.status,
           createdAt: doc.createdAt,
           driverBidLkr: Number(doc.driverBidLkr) || 0,
@@ -589,6 +631,8 @@ async function listPendingRideRequests(req, res) {
         dropoff: doc.dropoff,
         distanceKm: doc.distanceKm,
         estimatedFareLkr: doc.estimatedFareLkr,
+        vehicleType: doc.vehicleType || "",
+        seatCount: Number(doc.seatCount) || 1,
         status: doc.status,
         createdAt: doc.createdAt,
         driverBidLkr: Number(doc.driverBidLkr) || 0,
