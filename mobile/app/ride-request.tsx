@@ -41,11 +41,25 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
   return R * c;
 }
 
-function estimateFareLkr(distanceKm: number) {
-  const base = 150;
-  const perKm = 80;
+const VEHICLE_OPTIONS = [
+  { id: "car", label: "Car", seats: 3, base: 160, perKm: 90 },
+  { id: "bike", label: "Bike", seats: 1, base: 100, perKm: 60 },
+  { id: "van", label: "Van", seats: 5, base: 220, perKm: 110 },
+  { id: "tuk_tuk", label: "Tuk Tuk", seats: 2, base: 130, perKm: 75 },
+] as const;
+type VehicleId = (typeof VEHICLE_OPTIONS)[number]["id"];
+
+function isPeakTime(now = new Date()) {
+  const h = now.getHours();
+  return (h >= 7 && h < 10) || (h >= 17 && h < 20);
+}
+
+function estimateFareByVehicle(distanceKm: number, vehicleType: VehicleId, seatCount: number) {
+  const cfg = VEHICLE_OPTIONS.find((v) => v.id === vehicleType) ?? VEHICLE_OPTIONS[0];
+  const seats = Math.max(1, Math.min(cfg.seats, Math.round(seatCount || 1)));
   const km = Math.max(0, distanceKm);
-  return Math.round(base + km * perKm);
+  const peakOffPeakMultiplier = isPeakTime() ? 1.25 : 0.9;
+  return Math.round((cfg.base + km * cfg.perKm) * peakOffPeakMultiplier * seats);
 }
 
 export default function RideRequestScreen() {
@@ -55,6 +69,8 @@ export default function RideRequestScreen() {
   const [pickup, setPickup] = useState<{ lat: number; lng: number } | null>(null);
   const [dropText, setDropText] = useState("");
   const [drop, setDrop] = useState<{ lat: number; lng: number } | null>(null);
+  const [vehicleType, setVehicleType] = useState<VehicleId>("car");
+  const [seatCount, setSeatCount] = useState(1);
   const [loadingLoc, setLoadingLoc] = useState(false);
   const [loadingReq, setLoadingReq] = useState(false);
   const [driverProgress, setDriverProgress] = useState(0.12);
@@ -66,7 +82,17 @@ export default function RideRequestScreen() {
     return haversineKm(pickup, drop);
   }, [pickup, drop]);
 
-  const fare = useMemo(() => estimateFareLkr(distanceKm), [distanceKm]);
+  const maxSeatsForVehicle = useMemo(
+    () => VEHICLE_OPTIONS.find((v) => v.id === vehicleType)?.seats ?? 1,
+    [vehicleType]
+  );
+  useEffect(() => {
+    setSeatCount((prev) => Math.max(1, Math.min(maxSeatsForVehicle, prev)));
+  }, [maxSeatsForVehicle]);
+  const fare = useMemo(
+    () => estimateFareByVehicle(distanceKm, vehicleType, seatCount),
+    [distanceKm, vehicleType, seatCount]
+  );
   const acceptedPickup = activeRequest?.pickup;
   const acceptedDrop = activeRequest?.dropoff;
 
@@ -292,6 +318,8 @@ export default function RideRequestScreen() {
       await createRideRequest({
         pickup: { address: pickupLabel, lat: pickup.lat, lng: pickup.lng },
         dropoff: { address: dropText.trim(), lat: drop.lat, lng: drop.lng },
+        vehicleType,
+        seatCount,
       });
     } catch (e) {
       Alert.alert("Error", e instanceof Error ? e.message : "Failed to request driver");
@@ -351,6 +379,42 @@ export default function RideRequestScreen() {
 
           <View style={styles.divider} />
 
+          <Text style={styles.sectionLabel}>Vehicle type</Text>
+          <View style={styles.optionRow}>
+            {VEHICLE_OPTIONS.map((v) => {
+              const active = vehicleType === v.id;
+              return (
+                <Pressable
+                  key={v.id}
+                  onPress={() => setVehicleType(v.id)}
+                  style={[styles.optionChip, active && styles.optionChipActive]}
+                >
+                  <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                    {v.label} · {v.seats} seats
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={[styles.sectionLabel, { marginTop: Space.sm }]}>Seat count</Text>
+          <View style={styles.optionRow}>
+            {Array.from({ length: maxSeatsForVehicle }, (_, i) => i + 1).map((s) => {
+              const active = seatCount === s;
+              return (
+                <Pressable
+                  key={s}
+                  onPress={() => setSeatCount(s)}
+                  style={[styles.seatChip, active && styles.optionChipActive]}
+                >
+                  <Text style={[styles.optionText, active && styles.optionTextActive]}>{s}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.divider} />
+
           <Text style={styles.sectionLabel}>Estimate</Text>
           <View style={styles.estimateRow}>
             <View style={styles.estimateChip}>
@@ -362,6 +426,9 @@ export default function RideRequestScreen() {
               <Text style={styles.estimateValue}>LKR {fare.toLocaleString("en-LK")}</Text>
             </View>
           </View>
+          <Text style={styles.hintLine}>
+            Fare changes by peak/off-peak time, distance, vehicle type, and seat count.
+          </Text>
 
           {activeRequest ? (
             <View style={styles.statusBox}>
@@ -621,6 +688,28 @@ const styles = StyleSheet.create({
   pillText: { flex: 1, fontSize: 13, fontWeight: "700", color: BrandColors.textDark },
   smallBtn: { minHeight: 44, paddingHorizontal: 14, borderRadius: Radii.pill },
   divider: { height: 1, backgroundColor: BrandColors.surfaceMuted, marginVertical: Space.md },
+  optionRow: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm },
+  optionChip: {
+    borderWidth: 1,
+    borderColor: BrandColors.border,
+    backgroundColor: BrandColors.surface,
+    borderRadius: Radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  seatChip: {
+    minWidth: 44,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: BrandColors.border,
+    backgroundColor: BrandColors.surface,
+    borderRadius: Radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  optionChipActive: { borderColor: BrandColors.primary, backgroundColor: BrandColors.accentSoft },
+  optionText: { fontSize: 12, fontWeight: "700", color: BrandColors.textDark },
+  optionTextActive: { color: BrandColors.primaryDark },
   estimateRow: { flexDirection: "row", gap: Space.sm },
   estimateChip: {
     flex: 1,
@@ -632,6 +721,7 @@ const styles = StyleSheet.create({
   },
   estimateLabel: { fontSize: 11, fontWeight: "800", color: BrandColors.textMuted, textTransform: "uppercase" },
   estimateValue: { marginTop: 6, fontSize: 16, fontWeight: "900", color: BrandColors.primaryDark },
+  hintLine: { marginTop: Space.sm, fontSize: 11, color: BrandColors.textMuted, lineHeight: 16 },
   statusBox: {
     marginTop: Space.md,
     borderRadius: Radii.lg,

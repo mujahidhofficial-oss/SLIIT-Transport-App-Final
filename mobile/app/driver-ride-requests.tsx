@@ -18,6 +18,8 @@ type PendingRideRequest = {
   dropoff: { address: string; lat: number; lng: number };
   distanceKm: number;
   estimatedFareLkr: number;
+  vehicleType?: "car" | "bike" | "van" | "tuk_tuk";
+  seatCount?: number;
   status: "pending";
   createdAt?: string;
 };
@@ -90,6 +92,9 @@ export default function DriverRideRequestsScreen() {
             </Text>
             <Text style={styles.meta}>
               ~{item.distanceKm.toFixed(1)} km · Est. fare LKR {Math.round(item.estimatedFareLkr).toLocaleString("en-LK")}
+            </Text>
+            <Text style={styles.metaSmall}>
+              Vehicle · {String(item.vehicleType ?? "car").replace("_", " ")} · Seats {Math.max(1, Number(item.seatCount) || 1)}
             </Text>
             <Text style={styles.metaSmall}>Customer · {item.customerId}</Text>
 
