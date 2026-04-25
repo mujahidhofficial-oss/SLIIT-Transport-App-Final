@@ -420,11 +420,87 @@ function SignupForm({ showPw, onTogglePw }: { showPw: boolean; onTogglePw: () =>
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+
+  useEffect(() => {
+    setOtpSent(false);
+    setOtpVerified(false);
+    setOtp("");
+  }, [email]);
+
+  const onSendOtp = async () => {
+    if (sendingOtp) return;
+    const em = email.trim().toLowerCase();
+    if (!em) {
+      Alert.alert("Email required", "Enter your email first.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      Alert.alert("Invalid email", "Enter a valid email address.");
+      return;
+    }
+    try {
+      setSendingOtp(true);
+      const res = await fetch(`${getApiBaseUrl()}/api/auth/signup/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: em }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { message?: string };
+      if (!res.ok) throw new Error(body.message ?? "Could not send OTP");
+      setOtpSent(true);
+      setOtpVerified(false);
+      Alert.alert("OTP sent", "Check your email for the verification code.");
+    } catch (e) {
+      Alert.alert("OTP failed", e instanceof Error ? e.message : "Could not send OTP");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const onVerifyOtp = async () => {
+    if (verifyingOtp) return;
+    const em = email.trim().toLowerCase();
+    const code = otp.trim();
+    if (!em) {
+      Alert.alert("Email required", "Enter your email first.");
+      return;
+    }
+    if (!code) {
+      Alert.alert("OTP required", "Enter the OTP code from your email.");
+      return;
+    }
+    try {
+      setVerifyingOtp(true);
+      const res = await fetch(`${getApiBaseUrl()}/api/auth/signup/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: em, otp: code }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { message?: string };
+      if (!res.ok) throw new Error(body.message ?? "OTP verification failed");
+      setOtpVerified(true);
+      Alert.alert("Verified", "Email OTP verified. You can create your account now.");
+    } catch (e) {
+      setOtpVerified(false);
+      Alert.alert("OTP verify failed", e instanceof Error ? e.message : "OTP verification failed");
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   const onSubmit = async () => {
     if (loading) return;
     if (!studentId.trim() || !email.trim() || !password || !fullName.trim() || !phone.trim()) {
       Alert.alert("Check fields", "Please fill student ID, email, password, name, and phone.");
+      return;
+    }
+    if (!otpVerified) {
+      Alert.alert("Verify email", "Send OTP and verify your email before creating the account.");
       return;
     }
     try {
@@ -494,6 +570,38 @@ function SignupForm({ showPw, onTogglePw }: { showPw: boolean; onTogglePw: () =>
           keyboardType="email-address"
         />
       </InputRow>
+      <View style={styles.otpRow}>
+        <PrimaryButton
+          title={sendingOtp ? "Sending OTP..." : otpSent ? "Resend OTP" : "Send OTP"}
+          onPress={() => void onSendOtp()}
+          disabled={sendingOtp || loading || verifyingOtp}
+          style={styles.otpSendBtn}
+        />
+      </View>
+      {otpSent ? (
+        <>
+          <InputRow icon={<Ionicons name="key-outline" size={20} color={BrandColors.primary} />}>
+            <TextInput
+              placeholder="Enter OTP"
+              placeholderTextColor={BrandColors.textLight}
+              style={styles.input}
+              value={otp}
+              onChangeText={setOtp}
+              keyboardType="number-pad"
+              maxLength={6}
+            />
+          </InputRow>
+          <View style={styles.otpRow}>
+            <PrimaryButton
+              title={verifyingOtp ? "Verifying..." : otpVerified ? "Verified" : "Verify OTP"}
+              onPress={() => void onVerifyOtp()}
+              disabled={verifyingOtp || loading || otpVerified}
+              style={styles.otpVerifyBtn}
+            />
+          </View>
+        </>
+      ) : null}
+      {otpVerified ? <Text style={styles.otpDoneText}>Email verified</Text> : null}
 
       <InputRow icon={<Ionicons name="lock-closed" size={20} color={BrandColors.primary} />}>
         <TextInput
@@ -535,7 +643,7 @@ function SignupForm({ showPw, onTogglePw }: { showPw: boolean; onTogglePw: () =>
         title={loading ? "Creating account..." : "Create account"}
         onPress={() => void onSubmit()}
         style={{ marginTop: Space.lg }}
-        disabled={loading}
+        disabled={loading || !otpVerified}
       />
     </View>
   );
@@ -1636,6 +1744,15 @@ const styles = StyleSheet.create({
   },
   licenseCheckBtnDisabled: { opacity: 0.55 },
   licenseCheckBtnText: { fontSize: 13, fontWeight: "800", color: BrandColors.primaryDark },
+  otpRow: { marginTop: Space.sm, marginBottom: Space.xs },
+  otpSendBtn: { marginTop: 0, minHeight: 46, borderRadius: Radii.md },
+  otpVerifyBtn: { marginTop: 0, minHeight: 46, borderRadius: Radii.md },
+  otpDoneText: {
+    marginTop: Space.xs,
+    color: BrandColors.success,
+    fontSize: 12,
+    fontWeight: "800",
+  },
   verifyBanner: {
     marginTop: Space.sm,
     padding: Space.sm,

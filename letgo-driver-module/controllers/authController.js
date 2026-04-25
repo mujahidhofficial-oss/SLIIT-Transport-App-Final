@@ -6,8 +6,39 @@ const { signToken } = require("../config/auth");
 const { createUser, findUserByEmail, findDriverByEmail } = require("../utils/authMemoryStore");
 const { emailMatchExpr } = require("../utils/emailLookup");
 const { createAndEmitNotification } = require("../utils/notify");
+const { sendMail } = require("../utils/mailer");
 
 const isDbConnected = () => mongoose.connection?.readyState === 1;
+const signupOtpStore = new Map();
+const verifiedSignupEmailStore = new Map();
+
+function normalizeEmail(v) {
+  return String(v ?? "").trim().toLowerCase();
+}
+
+function requireSignupOtp() {
+  const raw = String(process.env.REQUIRE_SIGNUP_OTP ?? "true").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+}
+
+function otpTtlMs() {
+  const mins = Number(process.env.OTP_EXPIRES_MIN ?? 10);
+  return (Number.isFinite(mins) && mins > 0 ? mins : 10) * 60 * 1000;
+}
+
+function createOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function clearExpiredOtp() {
+  const now = Date.now();
+  for (const [email, rec] of signupOtpStore.entries()) {
+    if (Number(rec.expiresAt) <= now) signupOtpStore.delete(email);
+  }
+  for (const [email, rec] of verifiedSignupEmailStore.entries()) {
+    if (Number(rec.expiresAt) <= now) verifiedSignupEmailStore.delete(email);
+  }
+}
 
 const sanitizeUser = (u) => ({
   id: String(u._id),
@@ -41,6 +72,66 @@ const sanitizeDriverAsUser = (driver) => ({
   },
 });
 
+const sendSignupOtp = async (req, res) => {
+  try {
+    clearExpiredOtp();
+    const email = normalizeEmail(req.body?.email);
+    if (!email) {
+      return res.status(400).json({ message: "email is required" });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
+    }
+
+    const alreadyUser = isDbConnected()
+      ? await User.findOne(emailMatchExpr(email))
+      : await findUserByEmail(email);
+    if (alreadyUser) {
+      return res.status(409).json({ message: "This email already has a passenger account" });
+    }
+
+    const otp = createOtp();
+    const ttl = otpTtlMs();
+    signupOtpStore.set(email, { otp, expiresAt: Date.now() + ttl });
+    verifiedSignupEmailStore.delete(email);
+
+    await sendMail({
+      to: email,
+      subject: "SLIIT Transport - Signup OTP",
+      text: `Your OTP is ${otp}. It expires in ${Math.round(ttl / 60000)} minutes.`,
+      html: `<p>Your signup OTP is <b>${otp}</b>.</p><p>This code expires in ${Math.round(ttl / 60000)} minutes.</p>`,
+    });
+
+    return res.json({ message: "OTP sent successfully" });
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
+  }
+};
+
+const verifySignupOtp = async (req, res) => {
+  try {
+    clearExpiredOtp();
+    const email = normalizeEmail(req.body?.email);
+    const otp = String(req.body?.otp ?? "").trim();
+    if (!email || !otp) {
+      return res.status(400).json({ message: "email and otp are required" });
+    }
+    const rec = signupOtpStore.get(email);
+    if (!rec || Number(rec.expiresAt) <= Date.now()) {
+      signupOtpStore.delete(email);
+      return res.status(400).json({ message: "OTP expired. Request a new OTP." });
+    }
+    if (String(rec.otp) !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+    signupOtpStore.delete(email);
+    verifiedSignupEmailStore.set(email, { expiresAt: Date.now() + otpTtlMs() });
+    return res.json({ message: "OTP verified" });
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
+  }
+};
+
 const register = async (req, res) => {
   try {
     const { studentId, email, password, role, profile } = req.body;
@@ -52,7 +143,14 @@ const register = async (req, res) => {
     }
 
     if (isDbConnected()) {
-      const normalizedEmail = String(email).toLowerCase().trim();
+      const normalizedEmail = normalizeEmail(email);
+      if (String(role || "student").toLowerCase() === "student" && requireSignupOtp()) {
+        clearExpiredOtp();
+        const verified = verifiedSignupEmailStore.get(normalizedEmail);
+        if (!verified || Number(verified.expiresAt) <= Date.now()) {
+          return res.status(400).json({ message: "Verify signup OTP before creating the account" });
+        }
+      }
       const exists = await User.findOne({
         $or: [{ studentId: String(studentId).trim() }, emailMatchExpr(normalizedEmail)],
       });
@@ -77,11 +175,20 @@ const register = async (req, res) => {
         message: "Your account was created successfully.",
         meta: { role: user.role, email: user.email },
       });
+      verifiedSignupEmailStore.delete(normalizedEmail);
 
       return res.status(201).json({ message: "Registered successfully", user: sanitizeUser(user) });
     }
 
     // In-memory fallback
+    const normalizedEmail = normalizeEmail(email);
+    if (String(role || "student").toLowerCase() === "student" && requireSignupOtp()) {
+      clearExpiredOtp();
+      const verified = verifiedSignupEmailStore.get(normalizedEmail);
+      if (!verified || Number(verified.expiresAt) <= Date.now()) {
+        return res.status(400).json({ message: "Verify signup OTP before creating the account" });
+      }
+    }
     const memUser = await createUser({ studentId, email, password, role: role || "student", profile });
     await createAndEmitNotification(req, {
       userId: String(memUser._id),
@@ -90,6 +197,7 @@ const register = async (req, res) => {
       message: "Your account was created successfully.",
       meta: { role: memUser.role, email: memUser.email },
     });
+    verifiedSignupEmailStore.delete(normalizedEmail);
     return res.status(201).json({ message: "Registered successfully (memory)", user: sanitizeUser(memUser) });
   } catch (e) {
     res.status(500).json({ message: e.message });
@@ -194,5 +302,5 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+module.exports = { register, login, sendSignupOtp, verifySignupOtp };
 

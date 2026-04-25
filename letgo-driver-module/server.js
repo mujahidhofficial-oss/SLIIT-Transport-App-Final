@@ -54,6 +54,12 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
+  const smtpReady = Boolean(
+    String(process.env.SMTP_HOST ?? "").trim() &&
+      String(process.env.SMTP_USER ?? "").trim() &&
+      String(process.env.SMTP_PASS ?? "").trim()
+  );
+  console.log(`[SMTP] signup email ready: ${smtpReady ? "yes" : "no"} (host=${String(process.env.SMTP_HOST ?? "").trim() || "—"})`);
   const skipOcr = ["1", "true", "yes"].includes(
     String(process.env.SKIP_LICENSE_OCR ?? "").trim().toLowerCase()
   );
