@@ -62,6 +62,7 @@ export default function RideRequestScreen() {
   const insets = useSafeAreaInsets();
   const { activeRequest } = useRideRequestStore();
   const [pickupLabel, setPickupLabel] = useState("Current location");
+  const [pickupText, setPickupText] = useState("");
   const [pickup, setPickup] = useState<{ lat: number; lng: number } | null>(null);
   const [dropText, setDropText] = useState("");
   const [drop, setDrop] = useState<{ lat: number; lng: number } | null>(null);
@@ -260,8 +261,33 @@ export default function RideRequestScreen() {
         ? [first.name, first.street, first.city, first.region].filter(Boolean).join(", ")
         : "Current location";
       setPickupLabel(label);
+      setPickupText(label);
     } catch (e) {
       Alert.alert("Error", e instanceof Error ? e.message : "Unable to fetch location");
+    } finally {
+      setLoadingLoc(false);
+    }
+  };
+
+  const geocodePickup = async () => {
+    const q = pickupText.trim();
+    if (!q) {
+      setPickup(null);
+      setPickupLabel("Current location");
+      return;
+    }
+    try {
+      setLoadingLoc(true);
+      const res = await Location.geocodeAsync(q);
+      const first = res?.[0];
+      if (!first) {
+        Alert.alert("Pickup", "Could not find that place. Try a more specific name.");
+        return;
+      }
+      setPickup({ lat: first.latitude, lng: first.longitude });
+      setPickupLabel(q);
+    } catch {
+      Alert.alert("Pickup", "Unable to search pickup on this device.");
     } finally {
       setLoadingLoc(false);
     }
@@ -302,7 +328,7 @@ export default function RideRequestScreen() {
       clearActiveRideRequest();
     }
     if (!pickup) {
-      Alert.alert("Pickup", "Tap “Use my location” first.");
+      Alert.alert("Pickup", "Set pickup with “Find pickup” or “Use my location”.");
       return;
     }
     if (!drop || dropText.trim().length < 2) {
@@ -341,6 +367,28 @@ export default function RideRequestScreen() {
       >
         <AppCard padded style={styles.card}>
           <Text style={styles.sectionLabel}>Pickup</Text>
+          <FormTextInput
+            label="Pickup location"
+            placeholder="Type pickup place or use current location"
+            value={pickupText}
+            onChangeText={setPickupText}
+            containerStyle={{ marginBottom: Space.sm }}
+          />
+          <View style={styles.pickupActionRow}>
+            <PrimaryButton
+              title={loadingLoc ? "Searching…" : "Find pickup"}
+              onPress={() => void geocodePickup()}
+              disabled={loadingLoc}
+              variant="outline"
+              style={styles.pickupActionBtn}
+            />
+            <PrimaryButton
+              title={loadingLoc ? "Getting…" : "Use my location"}
+              onPress={() => void fetchCurrentLocation()}
+              style={styles.pickupActionBtn}
+              disabled={loadingLoc}
+            />
+          </View>
           <View style={styles.pillRow}>
             <View style={styles.pill}>
               <Ionicons name="locate-outline" size={16} color={BrandColors.primaryDark} />
@@ -348,12 +396,6 @@ export default function RideRequestScreen() {
                 {pickupLabel || "Current location"}
               </Text>
             </View>
-            <PrimaryButton
-              title={loadingLoc ? "Getting…" : "Use my location"}
-              onPress={() => void fetchCurrentLocation()}
-              style={styles.smallBtn}
-              disabled={loadingLoc}
-            />
           </View>
 
           <View style={styles.divider} />
@@ -680,6 +722,8 @@ export default function RideRequestScreen() {
 const styles = StyleSheet.create({
   card: { marginTop: Space.sm },
   sectionLabel: { ...Typography.overline, color: BrandColors.textMuted, marginBottom: Space.sm },
+  pickupActionRow: { flexDirection: "row", gap: Space.sm, marginBottom: Space.sm },
+  pickupActionBtn: { flex: 1 },
   pillRow: { flexDirection: "row", alignItems: "center", gap: Space.sm },
   pill: {
     flex: 1,
@@ -695,7 +739,6 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.surface,
   },
   pillText: { flex: 1, fontSize: 13, fontWeight: "700", color: BrandColors.textDark },
-  smallBtn: { minHeight: 44, paddingHorizontal: 14, borderRadius: Radii.pill },
   divider: { height: 1, backgroundColor: BrandColors.surfaceMuted, marginVertical: Space.md },
   optionRow: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm },
   optionChip: {
