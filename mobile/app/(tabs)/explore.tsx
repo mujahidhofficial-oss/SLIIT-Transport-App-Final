@@ -11,7 +11,7 @@ import { AppCard } from "@/app/_components/ui/AppCard";
 
 const SHORTCUTS = [
   { title: "Trip action", subtitle: "Pending rides, map, accept & finish", icon: "map-outline" as const, route: "/driver-trip-action" },
-  { title: "Notifications", subtitle: "Booking, payment, and account alerts", icon: "notifications-outline" as const, route: "/notifications" },
+  { title: "Booking requests", subtitle: "Passenger seat bookings for your trips", icon: "list-outline" as const, route: "/driver-booking-requests" },
   { title: "Trip history", subtitle: "Rides you accepted & completed", icon: "time-outline" as const, route: "/trip-history" },
   { title: "Driver earnings", subtitle: "Trips finished & payments", icon: "wallet-outline" as const, route: "/driver-earnings" },
 ] as const;

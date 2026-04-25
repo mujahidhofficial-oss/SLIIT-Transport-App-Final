@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/app/_components/PrimaryButton";
@@ -8,6 +8,7 @@ import { getApiBaseUrl } from "@/app/_state/api";
 import { ScreenHeader } from "@/app/_components/ui/ScreenHeader";
 import { AppCard } from "@/app/_components/ui/AppCard";
 import { FormTextInput } from "@/app/_components/ui/FormTextInput";
+import { getDriverSession } from "@/app/_state/driverSession";
 
 type BookingItem = {
   _id: string;
@@ -21,6 +22,55 @@ export default function DriverBookingRequests() {
   const [tripId, setTripId] = useState("");
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hint, setHint] = useState("Enter a trip ID, then load booking requests.");
+
+  const loadLatestDriverTripId = async (): Promise<string> => {
+    const sess = await getDriverSession();
+    const driverId = String(sess?.driverId ?? "").trim();
+    if (!driverId) {
+      setHint("Driver session not found. Sign in as driver first.");
+      return "";
+    }
+
+    const res = await fetch(`${getApiBaseUrl()}/api/trips`);
+    const body = (await res.json().catch(() => [])) as
+      | { _id?: string; driverId?: string; departureTime?: string; createdAt?: string }[]
+      | { message?: string };
+    if (!res.ok || !Array.isArray(body)) {
+      throw new Error((body as any)?.message || "Failed to load your trips");
+    }
+
+    const mine = body
+      .filter((t) => String(t?.driverId ?? "").trim() === driverId)
+      .sort((a, b) => {
+        const ta = new Date(a?.departureTime ?? a?.createdAt ?? 0).getTime();
+        const tb = new Date(b?.departureTime ?? b?.createdAt ?? 0).getTime();
+        return tb - ta;
+      });
+
+    if (!mine.length) {
+      setHint("No trips found for this driver account. Create a trip first.");
+      return "";
+    }
+
+    return String(mine[0]?._id ?? "").trim();
+  };
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        setLoading(true);
+        const id = await loadLatestDriverTripId();
+        if (!id) return;
+        setTripId(id);
+        setHint("Loaded your latest trip automatically. Tap Refresh to re-check.");
+      } catch (error) {
+        setHint(error instanceof Error ? error.message : "Could not auto-load driver trip.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const loadRequests = async () => {
     const id = tripId.trim();
@@ -71,12 +121,9 @@ export default function DriverBookingRequests() {
   return (
     <View style={[styles.root, { paddingTop: insets.top + Space.sm }]}>
       <View style={styles.top}>
-        <ScreenHeader
-          showBack
-          title="Booking requests"
-          subtitle="Enter a trip ID, load requests, then accept or decline."
-        />
+        <ScreenHeader showBack title="Booking requests" subtitle="Manage passenger bookings for your trip." />
         <AppCard style={{ marginTop: Space.lg }}>
+          <Text style={styles.hint}>{hint}</Text>
           <FormTextInput
             label="Trip ID"
             placeholder="MongoDB trip _id"
@@ -85,7 +132,7 @@ export default function DriverBookingRequests() {
             autoCapitalize="none"
             containerStyle={{ marginBottom: Space.sm }}
           />
-          <PrimaryButton title={loading ? "Loading…" : "Load requests"} onPress={loadRequests} />
+          <PrimaryButton title={loading ? "Loading…" : "Refresh requests"} onPress={loadRequests} />
         </AppCard>
       </View>
 
@@ -156,6 +203,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   rowCard: { marginBottom: Space.md },
+  hint: { fontSize: 12, color: BrandColors.textMuted, marginBottom: Space.sm, lineHeight: 18 },
   badgeRow: { marginBottom: Space.sm },
   badge: {
     alignSelf: "flex-start",
