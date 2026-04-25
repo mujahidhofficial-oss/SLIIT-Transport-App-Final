@@ -19,7 +19,7 @@ import { Booking, Trip, cancelBooking, loadBookingsHistory, useBookingStore } fr
 import { getApiBaseUrl } from "@/app/_state/api";
 import { getAuthSession } from "@/app/_state/authSession";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -32,6 +32,7 @@ type RideRequestHistoryItem = {
   distanceKm: number;
   estimatedFareLkr: number;
   status: string;
+  driverId?: string;
   driverName?: string;
   driverPhone?: string;
   vehicleNumber?: string;
@@ -364,6 +365,8 @@ function RideRequestHistoryCard({
   const fromLabel = ride.pickup?.address?.trim() || "Pickup";
   const toLabel = ride.dropoff?.address?.trim() || "Drop-off";
   const visual = rideStatusVisual(st);
+  const driverId = String(ride.driverId ?? "").trim();
+  const canLeaveFeedback = variant === "passenger" && st === "completed" && !!driverId;
 
   const statusLabel =
     variant === "driver"
@@ -477,15 +480,37 @@ function RideRequestHistoryCard({
           <Text style={styles.priceLabel}>Est. fare</Text>
           <Text style={styles.price}>LKR {Math.round(Number(ride.estimatedFareLkr) || 0)}</Text>
         </View>
-        <Pressable
-          onPress={() => void openRouteInGoogleMaps(fromLabel, toLabel)}
-          style={({ pressed }) => [styles.primaryBtn, pressed && styles.primaryBtnPressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Open route in maps"
-        >
-          <Ionicons name="map-outline" size={18} color={BrandColors.primaryDark} />
-          <Text style={styles.primaryBtnText}>Maps</Text>
-        </Pressable>
+        <View style={styles.footerActions}>
+          <Pressable
+            onPress={() => void openRouteInGoogleMaps(fromLabel, toLabel)}
+            style={({ pressed }) => [styles.primaryBtn, pressed && styles.primaryBtnPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Open route in maps"
+          >
+            <Ionicons name="map-outline" size={18} color={BrandColors.primaryDark} />
+            <Text style={styles.primaryBtnText}>Maps</Text>
+          </Pressable>
+          {canLeaveFeedback ? (
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/driver-feedback",
+                  params: {
+                    rideRequestId: ride.id,
+                    driverId,
+                    driverName: ride.driverName ?? "",
+                  },
+                })
+              }
+              style={({ pressed }) => [styles.primaryBtn, pressed && styles.primaryBtnPressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Leave feedback for driver"
+            >
+              <Ionicons name="star-outline" size={18} color={BrandColors.primaryDark} />
+              <Text style={styles.primaryBtnText}>Feedback</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
     </AppCard>
   );

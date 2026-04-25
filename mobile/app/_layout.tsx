@@ -42,6 +42,7 @@ export default function RootLayout() {
         <Stack.Screen name="driver-profile" />
         <Stack.Screen name="driver-bank-details" />
         <Stack.Screen name="driver-earnings" />
+        <Stack.Screen name="driver-feedback" />
         <Stack.Screen name="driver-submit-bids" />
         <Stack.Screen name="driver-trip-action" />
         <Stack.Screen name="ride-request" />
