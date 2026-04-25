@@ -109,6 +109,36 @@ const login = async (req, res) => {
     if (user) {
       const ok = await bcrypt.compare(password, user.passwordHash);
       if (!ok) {
+        // Same email can exist in Driver collection as well.
+        // If passenger password fails, try driver account before rejecting.
+        const driverForSameEmail = isDbConnected()
+          ? await Driver.findOne(emailMatchExpr(normalizedEmail))
+          : await findDriverByEmail(normalizedEmail);
+        if (driverForSameEmail) {
+          const driverOk = await bcrypt.compare(password, driverForSameEmail.passwordHash);
+          if (driverOk) {
+            const driverToken = signToken({ sub: driverForSameEmail._id, role: "driver" });
+            await createAndEmitNotification(req, {
+              userId: String(driverForSameEmail._id),
+              type: "auth",
+              title: "Login successful",
+              message: "Driver login successful.",
+              meta: { role: "driver", email: driverForSameEmail.email },
+            });
+            return res.json({
+              message: "Login successful",
+              token: driverToken,
+              user: sanitizeDriverAsUser(driverForSameEmail),
+              driver: {
+                id: String(driverForSameEmail._id),
+                email: driverForSameEmail.email,
+                fullName: driverForSameEmail.fullName,
+                phone: driverForSameEmail.phone,
+                vehicleNumber: driverForSameEmail.vehicleNumber,
+              },
+            });
+          }
+        }
         return res.status(401).json({ message: "Incorrect password" });
       }
       const token = signToken({ sub: user._id, role: user.role });

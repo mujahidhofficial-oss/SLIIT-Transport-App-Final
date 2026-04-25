@@ -7,7 +7,7 @@ const path = require("path");
 const connectDB = require("./config/db");
 const { warmupLicenseOcrWorker } = require("./utils/licenseOcr");
 
-dotenv.config({ path: path.join(__dirname, ".env") });
+dotenv.config({ path: path.join(__dirname, ".env"), override: true });
 connectDB();
 
 const app = express();
