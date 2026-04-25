@@ -1,4 +1,8 @@
 const DriverFeedback = require("../models/DriverFeedback");
+const mongoose = require("mongoose");
+
+const isDbConnected = () => mongoose.connection?.readyState === 1;
+const memoryFeedback = [];
 
 function normalizeText(v) {
   return String(v ?? "").trim();
@@ -22,6 +26,37 @@ const createFeedback = async (req, res) => {
       return res.status(400).json({ message: "rating must be between 1 and 5" });
     }
 
+    if (!isDbConnected()) {
+      const idx = memoryFeedback.findIndex(
+        (f) => String(f.rideRequestId) === rideRequestId && String(f.passengerId) === passengerId
+      );
+      const now = new Date().toISOString();
+      let feedback;
+      if (idx >= 0) {
+        memoryFeedback[idx] = {
+          ...memoryFeedback[idx],
+          driverId,
+          rating,
+          comment,
+          updatedAt: now,
+        };
+        feedback = memoryFeedback[idx];
+      } else {
+        feedback = {
+          _id: `mem_feedback_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+          rideRequestId,
+          driverId,
+          passengerId,
+          rating,
+          comment,
+          createdAt: now,
+          updatedAt: now,
+        };
+        memoryFeedback.unshift(feedback);
+      }
+      return res.status(201).json({ message: "Feedback saved", feedback });
+    }
+
     const feedback = await DriverFeedback.findOneAndUpdate(
       { rideRequestId, passengerId },
       { $set: { driverId, rating, comment } },
@@ -41,6 +76,24 @@ const getDriverFeedback = async (req, res) => {
   try {
     const driverId = normalizeText(req.params?.driverId);
     if (!driverId) return res.status(400).json({ message: "driverId is required" });
+
+    if (!isDbConnected()) {
+      const feedback = memoryFeedback
+        .filter((f) => String(f.driverId) === driverId)
+        .slice()
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      const totalReviews = feedback.length;
+      const averageRating =
+        totalReviews > 0
+          ? feedback.reduce((sum, item) => sum + Number(item.rating || 0), 0) / totalReviews
+          : 0;
+      return res.json({
+        driverId,
+        averageRating: Number(averageRating || 0),
+        totalReviews,
+        feedback,
+      });
+    }
 
     const feedback = await DriverFeedback.find({ driverId }).sort({ createdAt: -1 }).lean();
     const summary = await DriverFeedback.aggregate([
