@@ -295,6 +295,17 @@ export default function TripHistory() {
           </View>
           <ProfileAvatar size={48} />
         </View>
+        {isDriver ? (
+          <Pressable
+            onPress={() => router.push({ pathname: "/driver-feedback" })}
+            style={({ pressed }) => [styles.feedbackQuickBtn, pressed && { opacity: 0.82 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Open driver feedback screen"
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={14} color={BrandColors.primaryDark} />
+            <Text style={styles.feedbackQuickBtnText}>Passenger feedback</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {showInitialSpinner ? (
@@ -649,6 +660,20 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerText: { flex: 1, minWidth: 0 },
+  feedbackQuickBtn: {
+    marginTop: 2,
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    borderColor: "rgba(8, 94, 155, 0.2)",
+    backgroundColor: BrandColors.accentSoft,
+  },
+  feedbackQuickBtnText: { fontSize: 12, fontWeight: "800", color: BrandColors.primaryDark },
   listFlex: { flex: 1 },
   listContent: {
     paddingHorizontal: Layout.screenPaddingX - 2,

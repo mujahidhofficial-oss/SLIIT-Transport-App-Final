@@ -13,10 +13,20 @@ import { Radii, Space, Typography } from "@/app/_theme/tokens";
 import { clearActiveRideRequest } from "@/app/_state/rideRequestStore";
 
 export default function PaymentSuccessScreen() {
-  const params = useLocalSearchParams<{ paymentId?: string; ref?: string; total?: string; method?: string }>();
+  const params = useLocalSearchParams<{
+    paymentId?: string;
+    ref?: string;
+    total?: string;
+    method?: string;
+    requestId?: string;
+    driverId?: string;
+  }>();
   const referenceCode = params.ref ?? "REF-000000-000";
   const total = params.total ?? "0.00";
   const method = params.method ?? "card";
+  const requestId = String(params.requestId ?? "").trim();
+  const driverId = String(params.driverId ?? "").trim();
+  const canLeaveFeedback = !!requestId && !!driverId;
 
   const title = useMemo(() => {
     if (method === "cash") return "Successfully Process";
@@ -66,6 +76,22 @@ export default function PaymentSuccessScreen() {
           }}
           style={{ marginTop: Space.lg }}
         />
+        {canLeaveFeedback ? (
+          <PrimaryButton
+            title="Rate this driver"
+            variant="outline"
+            onPress={() =>
+              router.push({
+                pathname: "/driver-feedback",
+                params: {
+                  rideRequestId: requestId,
+                  driverId,
+                },
+              })
+            }
+            style={{ marginTop: Space.sm }}
+          />
+        ) : null}
       </AppCard>
 
       <Pressable

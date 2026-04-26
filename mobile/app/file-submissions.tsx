@@ -28,7 +28,13 @@ function bytesLabel(n?: number) {
 }
 
 export default function FileSubmissionsScreen() {
-  const params = useLocalSearchParams<{ paymentId?: string; ref?: string; total?: string; driverId?: string }>();
+  const params = useLocalSearchParams<{
+    paymentId?: string;
+    ref?: string;
+    total?: string;
+    driverId?: string;
+    requestId?: string;
+  }>();
   const referenceCode = params.ref ?? "REF-000000-000";
   const total = params.total ?? "0.00";
   const paymentId = params.paymentId ?? "";
@@ -121,7 +127,17 @@ export default function FileSubmissionsScreen() {
 
       await fetch(`${apiBaseUrl}/api/payments/demo/${paymentId}/verify-cash`, { method: "PUT" }).catch(() => null);
 
-      router.replace({ pathname: "/payment-success", params: { paymentId, ref: referenceCode, total, method: "bank" } });
+      router.replace({
+        pathname: "/payment-success",
+        params: {
+          paymentId,
+          ref: referenceCode,
+          total,
+          method: "bank",
+          requestId: params.requestId ?? "",
+          driverId: params.driverId ?? "",
+        },
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Upload failed";
       Alert.alert("Error", msg);

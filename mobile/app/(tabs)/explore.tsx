@@ -13,6 +13,7 @@ const SHORTCUTS = [
   { title: "Trip action", subtitle: "Pending rides, map, accept & finish", icon: "map-outline" as const, route: "/driver-trip-action" },
   { title: "Booking requests", subtitle: "Passenger seat bookings for your trips", icon: "list-outline" as const, route: "/driver-booking-requests" },
   { title: "Trip history", subtitle: "Rides you accepted & completed", icon: "time-outline" as const, route: "/trip-history" },
+  { title: "Passenger feedback", subtitle: "See ratings and comments from passengers", icon: "chatbubble-ellipses-outline" as const, route: "/driver-feedback" },
   { title: "Driver earnings", subtitle: "Trips finished & payments", icon: "wallet-outline" as const, route: "/driver-earnings" },
 ] as const;
 

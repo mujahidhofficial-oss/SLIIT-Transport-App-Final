@@ -201,7 +201,14 @@ export default function PaymentMethodScreen() {
       if (selectedMethod === "bank") {
         router.push({
           pathname: "/file-submissions",
-          params: { paymentId, ref: referenceCode, total, method: "bank", driverId },
+          params: {
+            paymentId,
+            ref: referenceCode,
+            total,
+            method: "bank",
+            driverId,
+            requestId,
+          },
         });
         return;
       }
@@ -213,7 +220,14 @@ export default function PaymentMethodScreen() {
 
       router.replace({
         pathname: "/payment-success",
-        params: { paymentId, ref: referenceCode, total, method: "cash" },
+        params: {
+          paymentId,
+          ref: referenceCode,
+          total,
+          method: "cash",
+          requestId,
+          driverId,
+        },
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Payment failed";

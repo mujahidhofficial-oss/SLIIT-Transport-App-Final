@@ -45,6 +45,7 @@ export default function RootLayout() {
         <Stack.Screen name="driver-feedback" />
         <Stack.Screen name="driver-submit-bids" />
         <Stack.Screen name="driver-trip-action" />
+        <Stack.Screen name="driver-feedback" />
         <Stack.Screen name="ride-request" />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
